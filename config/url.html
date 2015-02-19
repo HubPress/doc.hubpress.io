@@ -1,0 +1,134 @@
+<!DOCTYPE html><html lang="en"><head><title>config/url</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="config/url"><meta name="groc-project-path" content="src/hubpress/scripts/config/url.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/config/url.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Contains all path information to be used throughout
+the codebase.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">let</span> moment            = <span class="hljs-built_in">require</span>(<span class="hljs-string">'moment'</span>),
+    _                 = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>),
+    ghostConfig = <span class="hljs-string">''</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="setconfig">setConfig</h2>
+<p>Simple utility function to allow
+passing of the ghostConfig
+object here to be used locally
+to ensure clean depedency graph
+(i.e. no circular dependencies).</p></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setConfig</span><span class="hljs-params">(config)</span> </span>{
+    ghostConfig = config;
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="createurl">createUrl</h2>
+<p>Simple url creation from a given path
+Ensures that our urls contain the subdirectory if there is one
+And are correctly formatted as either relative or absolute
+Usage:
+createUrl(&#39;/&#39;, true) -&gt; <a href="http://my-ghost-blog.com/">http://my-ghost-blog.com/</a>
+E.g. /blog/ subdir
+createUrl(&#39;/welcome-to-ghost/&#39;) -&gt; /blog/welcome-to-ghost/
+Parameters:</p>
+<ul>
+<li>urlPath - string which must start and end with a slash</li>
+<li>absolute (optional, default:false) - boolean whether or not the url should be absolute</li>
+<li>secure (optional, default:false) - boolean whether or not to use urlSSL or url config
+Returns:<ul>
+<li>a URL which always ends with a slash</li>
+</ul>
+</li>
+</ul></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createUrl</span><span class="hljs-params">(urlPath, absolute, secure)</span> </span>{
+    urlPath = urlPath || <span class="hljs-string">'/'</span>;
+    absolute = absolute || <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">let</span> output = <span class="hljs-string">''</span>, baseUrl;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>create base of url, always ends without a slash</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (absolute) {
+        baseUrl = (secure &amp;&amp; ghostConfig.urlSSL) ? ghostConfig.urlSSL : ghostConfig.url;
+        output += baseUrl.replace(<span class="hljs-regexp">/\/$/</span>, <span class="hljs-string">''</span>);
+    } <span class="hljs-keyword">else</span> {
+        output += ghostConfig.paths.subdir;
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>append the path, always starts and ends with a slash</p></div></div><div class="code"><div class="wrapper">    output += urlPath;
+
+    <span class="hljs-keyword">return</span> output;
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="urlpathforpost">urlPathForPost</h2>
+<p>Always sync
+Creates the url path for a post, given a post and a permalink
+Parameters:</p>
+<ul>
+<li>post - a json object representing a post</li>
+<li>permalinks - a string containing the permalinks setting</li>
+</ul></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">urlPathForPost</span><span class="hljs-params">(post, permalinks)</span> </span>{
+    <span class="hljs-keyword">let</span> output = <span class="hljs-string">''</span>,
+        tags = {
+            year:   <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">return</span> moment(post.published_at).format(<span class="hljs-string">'YYYY'</span>); },
+            month:  <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">return</span> moment(post.published_at).format(<span class="hljs-string">'MM'</span>); },
+            day:    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">return</span> moment(post.published_at).format(<span class="hljs-string">'DD'</span>); },
+            author: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">return</span> post.author.slug; },
+            slug:   <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">return</span> post.slug; },
+            id:     <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{ <span class="hljs-keyword">return</span> post.id; }
+        };
+
+    <span class="hljs-keyword">if</span> (post.page) {
+        output += <span class="hljs-string">'/:slug/'</span>;
+    } <span class="hljs-keyword">else</span> {
+        output += permalinks;
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>replace tags like :slug or :year with actual values</p></div></div><div class="code"><div class="wrapper">    output = output.replace(<span class="hljs-regexp">/(:[a-z]+)/g</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(match)</span> </span>{
+        <span class="hljs-keyword">if</span> (_.has(tags, match.substr(<span class="hljs-number">1</span>))) {
+            <span class="hljs-keyword">return</span> tags[match.substr(<span class="hljs-number">1</span>)]();
+        }
+    });
+
+    <span class="hljs-keyword">return</span> output;
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="urlfor">urlFor</h2>
+<p>Synchronous url creation for a given context
+Can generate a url for a named path, given path, or known object (post)
+Determines what sort of context it has been given, and delegates to the correct generation method,
+Finally passing to createUrl, to ensure any subdirectory is honoured, and the url is absolute if needed
+Usage:
+urlFor(&#39;home&#39;, true) -&gt; <a href="http://my-ghost-blog.com/">http://my-ghost-blog.com/</a>
+E.g. /blog/ subdir
+urlFor({relativeUrl: &#39;/my-static-page/&#39;) -&gt; /blog/my-static-page/
+E.g. if post object represents welcome post, and slugs are set to standard
+urlFor(&#39;post&#39;, {...}) -&gt; /welcome-to-ghost/
+E.g. if post object represents welcome post, and slugs are set to date
+urlFor(&#39;post&#39;, {...}) -&gt; /2014/01/01/welcome-to-ghost/
+Parameters:</p>
+<ul>
+<li>context - a string, or json object describing the context for which you need a url</li>
+<li>data (optional) - a json object containing data needed to generate a url</li>
+<li>absolute (optional, default:false) - boolean whether or not the url should be absolute
+This is probably not the right place for this, but it&#39;s the best place for now</li>
+</ul></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">urlFor</span><span class="hljs-params">(context, data, absolute)</span> </span>{
+    <span class="hljs-keyword">let</span> urlPath = <span class="hljs-string">'/'</span>,
+        secure, imagePathRe,
+        knownObjects = [<span class="hljs-string">'post'</span>, <span class="hljs-string">'tag'</span>, <span class="hljs-string">'author'</span>, <span class="hljs-string">'image'</span>], baseUrl,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>this will become really big</p></div></div><div class="code"><div class="wrapper">    knownPaths = {
+        home: <span class="hljs-string">'/'</span>,
+        rss: <span class="hljs-string">'/rss/'</span>,
+        api: <span class="hljs-string">'/ghost/api/v0.1'</span>
+    };</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Make data properly optional</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (_.isBoolean(data)) {
+        absolute = data;
+        data = <span class="hljs-literal">null</span>;
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Can pass &#39;secure&#39; flag in either context or data arg</p></div></div><div class="code"><div class="wrapper">    secure = (context &amp;&amp; context.secure) || (data &amp;&amp; data.secure);
+
+    <span class="hljs-keyword">if</span> (_.isObject(context) &amp;&amp; context.relativeUrl) {
+        urlPath = context.relativeUrl;
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (_.isString(context) &amp;&amp; _.indexOf(knownObjects, context) !== -<span class="hljs-number">1</span>) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>trying to create a url for an object</p></div></div><div class="code"><div class="wrapper">        <span class="hljs-keyword">if</span> (context === <span class="hljs-string">'post'</span> &amp;&amp; data.post) {
+            urlPath = data.post.url;
+            secure = data.secure;
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (context === <span class="hljs-string">'tag'</span> &amp;&amp; data.tag) {
+            urlPath = <span class="hljs-string">'/tag/'</span> + data.tag.slug + <span class="hljs-string">'/'</span>;
+            secure = data.tag.secure;
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (context === <span class="hljs-string">'author'</span> &amp;&amp; data.author) {
+            urlPath = <span class="hljs-string">'/author/'</span> + data.author.slug + <span class="hljs-string">'/'</span>;
+            secure = data.author.secure;
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (context === <span class="hljs-string">'image'</span> &amp;&amp; data.image) {
+            urlPath = data.image;
+            imagePathRe = <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>(<span class="hljs-string">'^'</span> + ghostConfig.paths.subdir + <span class="hljs-string">'/'</span> + ghostConfig.paths.imagesRelPath);
+            absolute = imagePathRe.test(data.image) ? absolute : <span class="hljs-literal">false</span>;
+            secure = data.image.secure;
+
+            <span class="hljs-keyword">if</span> (absolute) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Remove the sub-directory from the URL because ghostConfig will add it back.</p></div></div><div class="code"><div class="wrapper">                urlPath = urlPath.replace(<span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>(<span class="hljs-string">'^'</span> + ghostConfig.paths.subdir), <span class="hljs-string">''</span>);
+                baseUrl = (secure &amp;&amp; ghostConfig.urlSSL) ? ghostConfig.urlSSL : ghostConfig.url;
+                baseUrl = baseUrl.replace(<span class="hljs-regexp">/\/$/</span>, <span class="hljs-string">''</span>);
+                urlPath = baseUrl + urlPath;
+            }
+
+            <span class="hljs-keyword">return</span> urlPath;
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (context === <span class="hljs-string">'sitemap-xsl'</span>) {
+            absolute = <span class="hljs-literal">true</span>;
+            urlPath = <span class="hljs-string">'/sitemap.xsl'</span>;
+        }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>other objects are recognised but not yet supported</p></div></div><div class="code"><div class="wrapper">    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (_.isString(context) &amp;&amp; _.indexOf(_.keys(knownPaths), context) !== -<span class="hljs-number">1</span>) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>trying to create a url for a named path</p></div></div><div class="code"><div class="wrapper">        urlPath = knownPaths[context] || <span class="hljs-string">'/'</span>;
+    }
+
+    <span class="hljs-keyword">return</span> createUrl(urlPath, absolute, secure);
+}
+
+<span class="hljs-built_in">module</span>.exports.setConfig = setConfig;
+<span class="hljs-built_in">module</span>.exports.urlFor = urlFor;
+<span class="hljs-built_in">module</span>.exports.urlPathForPost = urlPathForPost;</div></div></div></div></body></html>

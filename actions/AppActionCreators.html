@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="en"><head><title>actions/AppActionCreators</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="actions/AppActionCreators"><meta name="groc-project-path" content="src/hubpress/scripts/actions/AppActionCreators.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/actions/AppActionCreators.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">import HpConstants from <span class="hljs-string">'../constants/HpConstants'</span>;
+import PostsServices from <span class="hljs-string">'../services/PostsServices'</span>;
+<span class="hljs-keyword">let</span> HpDispatcher = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../dispatchers/HpDispatcher'</span>);
+<span class="hljs-keyword">let</span> ActionTypes = HpConstants.ActionTypes;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="appactioncreators">AppActionCreators</h2></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">class</span> AppActionCreators {</div></div></div><div class="segment"><div class="comments doc-section doc-section-public"><div class="wrapper"><p><span class='doc-section-header'>Public method startSynchronize</span></p>
+<p>Start the synchronize process, ATM only synchronize posts</p></div></div><div class="code"><div class="wrapper">  startSynchronize() {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'AppActionCreators - startSynchronize'</span>);
+    HpDispatcher.handleViewAction({
+      type: ActionTypes.START_SYNCHRONIZE
+    });
+
+    PostsServices.synchronizePosts();
+  }
+
+};
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> AppActionCreators();</div></div></div></div></body></html>

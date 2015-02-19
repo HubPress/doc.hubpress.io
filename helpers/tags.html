@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/tags</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/tags"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/tags.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/tags.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="tags-helper">Tags Helper</h1>
+<p>Usage: <code>{{tags}}</code>, <code>{{tags separator=&#39; - &#39;}}</code></p>
+<p>Returns a string of the tags on the post.
+By default, tags are separated by commas.</p>
+<p>Note that the standard {{#each tags}} implementation is unaffected by this helper</p></div></div><div class="code"><div class="wrapper">import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+<span class="hljs-keyword">var</span> handlebars             = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>),
+    _               = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>),
+    utils           = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./utils'</span>),
+    tags;
+
+tags = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(options)</span> </span>{
+    options = options || {};
+    options.hash = options.hash || {};
+
+    <span class="hljs-keyword">var</span> autolink = options.hash &amp;&amp; _.isString(options.hash.autolink) &amp;&amp; options.hash.autolink === <span class="hljs-string">'false'</span> ? <span class="hljs-literal">false</span> : <span class="hljs-literal">true</span>,
+        separator = options.hash &amp;&amp; _.isString(options.hash.separator) ? options.hash.separator : <span class="hljs-string">', '</span>,
+        prefix = options.hash &amp;&amp; _.isString(options.hash.prefix) ? options.hash.prefix : <span class="hljs-string">''</span>,
+        suffix = options.hash &amp;&amp; _.isString(options.hash.suffix) ? options.hash.suffix : <span class="hljs-string">''</span>,
+        output = <span class="hljs-string">''</span>;
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">createTagList</span><span class="hljs-params">(tags)</span> </span>{
+        <span class="hljs-comment">//var tagNames = _.pluck(tags, 'name');</span>
+
+        <span class="hljs-keyword">if</span> (autolink) {
+            <span class="hljs-keyword">return</span> _.map(tags, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(tag)</span> </span>{
+                <span class="hljs-keyword">return</span> utils.linkTemplate({
+                    url: SettingsStore.getSiteUrl() + <span class="hljs-string">'/tag/'</span>+tag,
+                    text: _.escape(tag)
+                });
+            }).join(separator);
+        }
+        <span class="hljs-keyword">return</span> _.escape(tags.join(separator));
+    }
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span> &amp;&amp; <span class="hljs-keyword">this</span>.tags &amp;&amp; <span class="hljs-keyword">this</span>.tags.length) {
+        output = prefix + createTagList(<span class="hljs-keyword">this</span>.tags) + suffix;
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> handlebars.SafeString(output);
+};
+
+<span class="hljs-built_in">module</span>.exports = tags;</div></div></div></div></body></html>

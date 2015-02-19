@@ -1,0 +1,134 @@
+<!DOCTYPE html><html lang="en"><head><title>utils/HpWebApiUtils</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="utils/HpWebApiUtils"><meta name="groc-project-path" content="src/hubpress/scripts/utils/HpWebApiUtils.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/utils/HpWebApiUtils.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">let</span> jquery = <span class="hljs-built_in">require</span>(<span class="hljs-string">'jquery'</span>);
+<span class="hljs-keyword">let</span> _ = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>);
+<span class="hljs-keyword">let</span> Q = <span class="hljs-built_in">require</span>(<span class="hljs-string">'q'</span>);
+import AppActionServerCreators from <span class="hljs-string">'../actions/AppActionServerCreators'</span>;
+import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_getConfig</span><span class="hljs-params">()</span> </span>{
+
+  <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+  jquery.get(<span class="hljs-string">'config.json'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(config)</span> </span>{
+    deferred.resolve(config);
+  })
+  .fail((err) =&gt; {
+    deferred.reject(err)
+  });
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_loadActiveTheme</span><span class="hljs-params">(name, meta)</span> </span>{
+  <span class="hljs-keyword">let</span> deferred = Q.defer();
+  <span class="hljs-keyword">let</span> promises = [];
+  <span class="hljs-keyword">let</span> hubpressUrl = SettingsStore.getHubpressUrl(meta);
+  jquery.get(`${hubpressUrl}/themes/${name}/theme.json`, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(theme)</span> </span>{
+    <span class="hljs-keyword">let</span> version = theme.version;
+    <span class="hljs-keyword">let</span> files = _.pairs(theme.files);
+
+    <span class="hljs-keyword">let</span> paginationLoaded = <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">let</span> navigationLoaded = <span class="hljs-literal">false</span>;
+
+    files.forEach((file) =&gt; {
+      <span class="hljs-keyword">let</span> deferredFile = Q.defer();
+      promises.push(deferredFile.promise);
+
+      paginationLoaded = paginationLoaded || file[<span class="hljs-number">0</span>] === <span class="hljs-string">'pagination'</span>;
+      navigationLoaded = navigationLoaded || file[<span class="hljs-number">0</span>] === <span class="hljs-string">'nav'</span>;
+
+      jquery.get(`${hubpressUrl}/themes/${name}/${file[<span class="hljs-number">1</span>]}`, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(content)</span> </span>{
+        deferredFile.resolve({
+          name: file[<span class="hljs-number">0</span>],
+          path: file[<span class="hljs-number">1</span>],
+          content: content
+        });
+      })
+      .fail((err) =&gt; {
+        deferredFile.reject(err)
+      });
+
+    });
+
+    <span class="hljs-keyword">if</span> (!paginationLoaded) {
+      <span class="hljs-keyword">let</span> deferredPagination = Q.defer();
+      promises.push(deferredPagination.promise);
+      jquery.get(`${hubpressUrl}/hubpress/scripts/helpers/tpl/pagination.hbs`, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(content)</span> </span>{
+        deferredPagination.resolve({
+          name: <span class="hljs-string">'pagination'</span>,
+          path: <span class="hljs-string">'partials/pagination'</span>,
+          content: content
+        });
+      })
+      .fail((err) =&gt; {
+        deferredPagination.reject(err)
+      });
+    }
+
+    <span class="hljs-keyword">if</span> (!navigationLoaded) {
+      <span class="hljs-keyword">let</span> deferredNav = Q.defer();
+      promises.push(deferredNav.promise);
+      jquery.get(`${hubpressUrl}/hubpress/scripts/helpers/tpl/nav.hbs`, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(content)</span> </span>{
+        deferredNav.resolve({
+          name: <span class="hljs-string">'nav'</span>,
+          path: <span class="hljs-string">'partials/nav'</span>,
+          content: content
+        });
+      })
+      .fail((err) =&gt; {
+        deferredNav.reject(err)
+      });
+    }
+
+    Q.all(promises)
+      .then((values)=&gt;{
+        deferred.resolve({
+          version: version,
+          files: values
+        });
+      });
+
+  });
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+}
+
+
+<span class="hljs-keyword">class</span> HpWebApiUtils {
+
+
+  getConfig() {
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+    <span class="hljs-keyword">let</span> _config;
+    <span class="hljs-keyword">let</span> theme;
+
+    _getConfig()
+    .then((config) =&gt; {
+      _config = config;
+      <span class="hljs-keyword">return</span> _loadActiveTheme(config.theme.name, config.meta);
+    })
+    .then((themeInfos) =&gt; {
+      <span class="hljs-keyword">let</span> data = {
+        config: _config,
+        theme: {
+          name: _config.theme.name,
+          files: themeInfos.files,
+          version: themeInfos.version
+        }
+      };
+      deferred.resolve();
+      AppActionServerCreators.receiveInit(data);
+
+    });
+
+    <span class="hljs-keyword">return</span> deferred.promise;
+
+  }
+
+  loadActiveTheme(name, meta) {
+    <span class="hljs-keyword">return</span> _loadActiveTheme(name, meta);
+  }
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> HpWebApiUtils();</div></div></div></div></body></html>

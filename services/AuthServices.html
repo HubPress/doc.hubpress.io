@@ -1,0 +1,166 @@
+<!DOCTYPE html><html lang="en"><head><title>services/AuthServices</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="services/AuthServices"><meta name="groc-project-path" content="src/hubpress/scripts/services/AuthServices.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/services/AuthServices.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">import Github from <span class="hljs-string">'../resources/Github.js'</span>;
+import AuthActionGHCreators from <span class="hljs-string">'../actions/AuthActionGHCreators.js'</span>;
+<span class="hljs-keyword">const</span> Q = <span class="hljs-built_in">require</span>(<span class="hljs-string">'q'</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_getRepositoryInfos</span><span class="hljs-params">(repository)</span> </span>{
+  <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+  repository.show(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(err, informations)</span> </span>{
+    <span class="hljs-keyword">if</span> (err) {
+      deferred.reject(err);
+    }
+    <span class="hljs-keyword">else</span> {
+      deferred.resolve(informations);
+    }
+  });
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_getAuthorizations</span><span class="hljs-params">(authorization)</span> </span>{
+  <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+  authorization.list(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(err, list)</span> </span>{
+    <span class="hljs-keyword">if</span> (err) {
+      deferred.reject(err);
+    }
+    <span class="hljs-keyword">else</span> {
+      deferred.resolve(list);
+    }
+  });
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+
+
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_getUserInformations</span><span class="hljs-params">(user)</span> </span>{
+
+  <span class="hljs-keyword">return</span> <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+    user.show(<span class="hljs-literal">null</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(err, informations)</span> </span>{
+      <span class="hljs-keyword">if</span> (err) {
+        deferred.reject(err);
+      }
+      <span class="hljs-keyword">else</span> {
+        deferred.resolve(informations);
+      }
+    });
+
+    <span class="hljs-keyword">return</span> deferred.promise;
+
+  }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_createAuthorization</span><span class="hljs-params">(authorization)</span> </span>{
+  <span class="hljs-keyword">let</span> deferred = Q.defer();
+  <span class="hljs-keyword">let</span> definition = {
+    scopes: [
+    <span class="hljs-string">'public_repo'</span>
+    ],
+    note: <span class="hljs-string">'hubpress.io'</span>
+  };
+
+
+  authorization.create(definition, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(err, createdToken)</span> </span>{
+    <span class="hljs-keyword">if</span> (err) {
+      deferred.reject(err);
+    }
+    <span class="hljs-keyword">else</span> {
+      Github.renewInstance({
+        auth: <span class="hljs-string">"oauth"</span>,
+        token: createdToken
+      });
+
+      deferred.resolve(createdToken);
+    }
+  });
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+}
+
+
+<span class="hljs-keyword">class</span> AuthServices {
+  constructor() {}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Log and return a token and authorizations for the repository</p></div></div><div class="code"><div class="wrapper">  login(credentials){
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'AuthServices - login'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'AuthServices - login'</span>, credentials.email);
+    <span class="hljs-keyword">let</span> github = Github.renewInstance({
+      auth: <span class="hljs-string">"basic"</span>,
+      username: credentials.email,
+      password: credentials.password,
+      twoFactorCode: credentials.twoFactorCode
+    });
+
+    <span class="hljs-keyword">let</span> context = Github.getContext();
+    <span class="hljs-keyword">let</span> repository = github.getRepo(context.username, context.repositoryName);
+    <span class="hljs-keyword">let</span> authorization = github.getAuthorization();
+    <span class="hljs-keyword">let</span> user = github.getUser();
+    <span class="hljs-keyword">let</span> _informations;
+    <span class="hljs-keyword">let</span> _userInformations;
+
+
+    _getRepositoryInfos(repository)
+      .then(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(informations)</span> </span>{
+        _informations = informations;
+      })
+      .then(_getUserInformations(user))
+      .then(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(userInformations)</span> </span>{
+        _userInformations = userInformations;
+        <span class="hljs-keyword">return</span> _getAuthorizations(authorization);
+      })
+      .then(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(authorizations)</span> </span>{
+        <span class="hljs-keyword">let</span> _token;
+
+        authorizations.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(token)</span> </span>{
+          <span class="hljs-keyword">if</span> (token.note === <span class="hljs-string">'hubpress.io'</span>) {
+            _token = token;
+          }
+        });
+
+        <span class="hljs-keyword">return</span> _token || _createAuthorization(authorization);
+
+      })
+      .then(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(result)</span> </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Call action</p></div></div><div class="code"><div class="wrapper">        AuthActionGHCreators.receiveAuthentication({
+          message: {
+            type: <span class="hljs-string">'success'</span>,
+            title: <span class="hljs-string">'Authentication'</span>,
+            content: <span class="hljs-string">'Welcome back '</span> + _userInformations.name
+          },
+          authentication: {
+            token: result.token,
+            permissions: _informations.permissions,
+            userInformations: _userInformations
+          }
+        });
+      })
+      .catch(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(error)</span> </span>{
+        <span class="hljs-keyword">var</span> message = {
+          type: <span class="hljs-string">'error'</span>,
+          title: <span class="hljs-string">'Authentication'</span>
+        }
+        <span class="hljs-keyword">var</span> otpRequired;
+
+        <span class="hljs-keyword">if</span> (error.request) {
+          <span class="hljs-keyword">var</span> otp = error.request.getResponseHeader(<span class="hljs-string">'X-GitHub-OTP'</span>) || <span class="hljs-string">''</span>;
+          otpRequired = otp.split(<span class="hljs-string">';'</span>)[<span class="hljs-number">0</span>] === <span class="hljs-string">'required'</span>;
+        }
+
+        <span class="hljs-keyword">if</span> (otpRequired) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>force sms with a post on auth</p></div></div><div class="code"><div class="wrapper">          _createAuthorization(authorization);
+
+          <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'AuthServices - OTP required : '</span>, otpRequired);
+          message.type = <span class="hljs-string">'warning'</span>;
+          message.content = <span class="hljs-string">'A two-factor authentication code is needed.'</span>;
+          message.otp = <span class="hljs-literal">true</span>;
+        }
+        <span class="hljs-keyword">else</span> {
+          <span class="hljs-built_in">console</span>.error(<span class="hljs-string">'AuthServices - login error'</span>, error);
+          message.content = <span class="hljs-string">'An error has occurred, see your console for more informations.'</span>;
+        }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Call action</p></div></div><div class="code"><div class="wrapper">        AuthActionGHCreators.receiveAuthentication({
+          message: message
+        });
+      });
+  }
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> AuthServices();</div></div></div></div></body></html>

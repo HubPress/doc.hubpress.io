@@ -1,0 +1,79 @@
+<!DOCTYPE html><html lang="en"><head><title>services/SettingsService</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="services/SettingsService"><meta name="groc-project-path" content="src/hubpress/scripts/services/SettingsService.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/services/SettingsService.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">import Generators from <span class="hljs-string">'../generators/Generators'</span>;
+import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+import Github from <span class="hljs-string">'../resources/Github'</span>;
+import SettingsActionGHCreators from <span class="hljs-string">'../actions/SettingsActionGHCreators'</span>;
+import HpWebApiUtils from <span class="hljs-string">'../utils/HpWebApiUtils'</span>;
+<span class="hljs-keyword">const</span> Q = <span class="hljs-built_in">require</span>(<span class="hljs-string">'q'</span>);
+<span class="hljs-keyword">const</span> _ = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_remoteSave</span><span class="hljs-params">(repository, context, config)</span> </span>{
+  <span class="hljs-keyword">let</span> defer = Q.defer();
+  repository.write(context.branch, <span class="hljs-string">'hubpress/config.json'</span>, config, <span class="hljs-string">'Update configuration file'</span>, (err, sha) =&gt; {
+    <span class="hljs-keyword">if</span> (err) {
+      defer.reject(err);
+    }
+    <span class="hljs-keyword">else</span> {
+      defer.resolve(sha);
+    }
+  });
+  <span class="hljs-keyword">return</span> defer.promise;
+}
+
+<span class="hljs-keyword">class</span> SettingsService {
+  constructor() {}
+
+  saveAndPublish(settings) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'SettingsService - saveAndPublish'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'SettingsService - saveAndPublish'</span>, settings);
+    <span class="hljs-keyword">let</span> context = Github.getContext();
+    <span class="hljs-keyword">let</span> github = Github.getGithub();
+    <span class="hljs-keyword">let</span> repository = github.getRepo(context.username, context.repositoryName);
+
+    settings.site.url = SettingsStore.getSiteUrl(settings.meta);
+
+    _remoteSave(repository, context, <span class="hljs-built_in">JSON</span>.stringify(settings))
+    .then((commitSha) =&gt; {
+      <span class="hljs-keyword">let</span> deferred = Q.defer();
+      <span class="hljs-keyword">let</span> cb = (err, sha) =&gt; {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>not found if we try to delete CNAME that not exist
+TODO Compare with the previous settings state</p></div></div><div class="code"><div class="wrapper">        <span class="hljs-keyword">if</span> (err &amp;&amp; err !== <span class="hljs-string">'not found'</span>) {
+          deferred.reject(err);
+        }
+        <span class="hljs-keyword">else</span> {
+          deferred.resolve(sha);
+        }
+      }
+
+      <span class="hljs-keyword">if</span> (!settings.meta.cname || settings.meta.cname === <span class="hljs-string">''</span>) {
+        <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'SettingsService - saveAndPublish delete CNAME'</span>);
+        repository.delete(settings.meta.branch, <span class="hljs-string">'CNAME'</span>, cb);
+      } <span class="hljs-keyword">else</span> {
+        <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'SettingsService - saveAndPublish save CNAME'</span>);
+        repository.write(settings.meta.branch, <span class="hljs-string">'CNAME'</span>, settings.meta.cname, `Update CNAME <span class="hljs-keyword">with</span> ${settings.meta.cname}`, cb);
+      }
+
+      <span class="hljs-keyword">return</span> deferred.promise;
+    })
+    .then(() =&gt; {
+      SettingsActionGHCreators.receiveSettings({
+        settings: settings,
+        message: {
+          type: <span class="hljs-string">'success'</span>,
+          title: <span class="hljs-string">'Settings save'</span>,
+          content: <span class="hljs-string">'Your settings have been saved with success. Now your posts are going to be regenerated.'</span>
+        }});
+    })
+    .catch((err) =&gt; {
+      <span class="hljs-built_in">console</span>.error(<span class="hljs-string">'SettingsService - saveAndPublish error'</span>, err);
+      SettingsActionGHCreators.receiveSettings({
+        settings: settings,
+        message: {
+          type: <span class="hljs-string">'error'</span>,
+          title: <span class="hljs-string">'Settings save'</span>,
+          content: <span class="hljs-string">'An error has occurred, see your console for more informations.'</span>
+        }});
+    })
+    ;
+  }
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> SettingsService();</div></div></div></div></body></html>

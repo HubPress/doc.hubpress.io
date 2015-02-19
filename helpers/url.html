@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/url</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/url"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/url.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/url.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="url-helper">URL helper</h1>
+<p>Usage: <code>{{url}}</code>, <code>{{url absolute=&quot;true&quot;}}</code></p>
+<p>Returns the URL for the current object scope i.e. If inside a post scope will return post permalink
+<code>absolute</code> flag outputs absolute URL, else URL is relative</p></div></div><div class="code"><div class="wrapper">import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+<span class="hljs-keyword">var</span> url;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">isPost</span><span class="hljs-params">(jsonData)</span> </span>{
+  <span class="hljs-keyword">return</span> jsonData.hasOwnProperty(<span class="hljs-string">'html'</span>) &amp;&amp;
+  jsonData.hasOwnProperty(<span class="hljs-string">'title'</span>);
+}
+
+url = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-keyword">var</span> absolute = options &amp;&amp; options.hash.absolute;
+
+    <span class="hljs-keyword">if</span> (isPost(<span class="hljs-keyword">this</span>)) {
+      <span class="hljs-keyword">var</span> postUrl = <span class="hljs-string">''</span>;
+
+      <span class="hljs-keyword">if</span> (absolute) {
+        postUrl = SettingsStore.getSiteUrl();
+      }
+      postUrl += <span class="hljs-keyword">this</span>.url;
+      <span class="hljs-keyword">return</span> postUrl;
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if (schema.isTag(this)) {
+    return config.urlFor(&#39;tag&#39;, {tag: this}, absolute);</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-comment">// </span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if (schema.isUser(this)) {
+    return config.urlFor(&#39;author&#39;, {author: this}, absolute);</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-comment">// </span>
+
+    <span class="hljs-keyword">return</span> absolute ? SettingsStore.getSiteUrl() + <span class="hljs-keyword">this</span>.relativeUrl : <span class="hljs-keyword">this</span>.relativeUrl;
+};
+
+<span class="hljs-built_in">module</span>.exports = url;</div></div></div></div></body></html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="en"><head><title>resources/IndexedDb</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="resources/IndexedDb"><meta name="groc-project-path" content="src/hubpress/scripts/resources/IndexedDb.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/resources/IndexedDb.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> dexie = <span class="hljs-built_in">require</span>(<span class="hljs-string">"dexie"</span>);
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_initDb</span><span class="hljs-params">(dbName)</span> </span>{
+  <span class="hljs-keyword">const</span> _db = <span class="hljs-keyword">new</span> Dexie(dbName);
+
+  _db.version(<span class="hljs-number">1</span>).stores({
+    posts: <span class="hljs-string">"&amp;id,&amp;name,original.name,published,[published+original.name]"</span>
+  });
+
+  _db.open().catch(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(err)</span> </span>{
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-literal">false</span>, <span class="hljs-string">"DB ERROR: "</span> + err);
+  });;
+  <span class="hljs-keyword">return</span> _db;
+}
+
+<span class="hljs-keyword">class</span> IndexedDb {
+  constructor() {
+    <span class="hljs-keyword">this</span>.db = <span class="hljs-literal">null</span>;
+  }
+
+  setDbName(dbName) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'IndexedDb - generate'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'IndexedDb - generate'</span>, dbName);
+    <span class="hljs-keyword">if</span>(<span class="hljs-keyword">this</span>.db){
+      <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'IndexedDb - delete db'</span>);
+      db.close();
+    }
+    <span class="hljs-keyword">this</span>.db = _initDb(dbName);
+  }
+
+  getDb() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.db;
+  }
+}
+
+
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> IndexedDb();</div></div></div></div></body></html>

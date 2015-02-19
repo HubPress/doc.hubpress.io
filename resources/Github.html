@@ -1,0 +1,21 @@
+<!DOCTYPE html><html lang="en"><head><title>resources/Github</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="resources/Github"><meta name="groc-project-path" content="src/hubpress/scripts/resources/Github.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/resources/Github.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> gh = <span class="hljs-built_in">require</span>(<span class="hljs-string">"github"</span>);
+
+<span class="hljs-keyword">let</span> _ghInstance;
+<span class="hljs-keyword">let</span> _context;
+
+<span class="hljs-keyword">const</span> Github = {
+
+  getContext: () =&gt; _context,
+
+  setContext: context =&gt; _context = context,
+
+  getGithub: () =&gt; _ghInstance,
+
+  renewInstance: (options) =&gt; {
+    _ghInstance = <span class="hljs-keyword">new</span> gh(options);
+    <span class="hljs-keyword">return</span> _ghInstance;
+  }
+
+}
+
+export <span class="hljs-keyword">default</span> Github;</div></div></div></div></body></html>

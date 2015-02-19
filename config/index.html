@@ -1,0 +1,310 @@
+<!DOCTYPE html><html lang="en"><head><title>config/index</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="config/index"><meta name="groc-project-path" content="src/hubpress/scripts/config/index.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/config/index.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>General entry point for all configuration data</p>
+<p>This file itself is a wrapper for the root level config.js file.
+All other files that need to reference config.js should use this file.</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">let</span> path          = <span class="hljs-built_in">require</span>(<span class="hljs-string">'path'</span>),
+    Promise       = <span class="hljs-built_in">require</span>(<span class="hljs-string">'bluebird'</span>),
+    crypto        = <span class="hljs-built_in">require</span>(<span class="hljs-string">'crypto'</span>),
+    fs            = <span class="hljs-built_in">require</span>(<span class="hljs-string">'fs'</span>),
+    url           = <span class="hljs-built_in">require</span>(<span class="hljs-string">'url'</span>),
+    _             = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>),
+    knex          = <span class="hljs-built_in">require</span>(<span class="hljs-string">'knex'</span>),
+    validator     = <span class="hljs-built_in">require</span>(<span class="hljs-string">'validator'</span>),
+    requireTree   = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../require-tree'</span>).readAll,
+    errors        = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../errors'</span>),
+    configUrl     = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./url'</span>),
+    packageInfo   = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../../../package.json'</span>),
+    appRoot       = path.resolve(__dirname, <span class="hljs-string">'../../../'</span>),
+    corePath      = path.resolve(appRoot, <span class="hljs-string">'core/'</span>),
+    testingEnvs   = [<span class="hljs-string">'testing'</span>, <span class="hljs-string">'testing-mysql'</span>, <span class="hljs-string">'testing-pg'</span>],
+    defaultConfig = {},
+    knexInstance;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">ConfigManager</span><span class="hljs-params">(config)</span> </span>{</div></div></div><div class="segment"><div class="comments doc-section doc-section-private"><div class="wrapper"><p><span class='doc-section-header'>Private of type <em>Object</em></span></p>
+<p>Our internal true representation of our current config object.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">this</span>._config = {};</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Allow other modules to be externally accessible.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">this</span>.urlFor = configUrl.urlFor;
+    <span class="hljs-keyword">this</span>.urlPathForPost = configUrl.urlPathForPost;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>If we&#39;re given an initial config object then we can set it.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (config &amp;&amp; _.isObject(config)) {
+        <span class="hljs-keyword">this</span>.set(config);
+    }
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Are we using sockets? Custom socket or the default?</p></div></div><div class="code"><div class="wrapper">ConfigManager.prototype.getSocket = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">let</span> socketConfig,
+        values = {
+            path: path.join(<span class="hljs-keyword">this</span>._config.paths.contentPath, process.env.NODE_ENV + <span class="hljs-string">'.socket'</span>),
+            permissions: <span class="hljs-string">'660'</span>
+        };
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>._config.server.hasOwnProperty(<span class="hljs-string">'socket'</span>)) {
+        socketConfig = <span class="hljs-keyword">this</span>._config.server.socket;
+
+        <span class="hljs-keyword">if</span> (_.isString(socketConfig)) {
+            values.path = socketConfig;
+
+            <span class="hljs-keyword">return</span> values;
+        }
+
+        <span class="hljs-keyword">if</span> (_.isObject(socketConfig)) {
+            values.path = socketConfig.path || values.path;
+            values.permissions = socketConfig.permissions || values.permissions;
+
+            <span class="hljs-keyword">return</span> values;
+        }
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+};
+
+ConfigManager.prototype.init = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(rawConfig)</span> </span>{
+    <span class="hljs-keyword">let</span> self = <span class="hljs-keyword">this</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Cache the config.js object&#39;s environment
+object so we can later refer to it.
+Note: this is not the entirety of config.js,
+just the object appropriate for this NODE_ENV</p></div></div><div class="code"><div class="wrapper">    self.set(rawConfig);
+
+    <span class="hljs-keyword">return</span> Promise.all([requireTree(self._config.paths.themePath), requireTree(self._config.paths.appPath)]).then(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(paths)</span> </span>{
+        self._config.paths.availableThemes = paths[<span class="hljs-number">0</span>];
+        self._config.paths.availableApps = paths[<span class="hljs-number">1</span>];
+        <span class="hljs-keyword">return</span> self._config;
+    });
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">configureDriver</span><span class="hljs-params">(client)</span> </span>{
+    <span class="hljs-keyword">let</span> pg;
+
+    <span class="hljs-keyword">if</span> (client === <span class="hljs-string">'pg'</span> || client === <span class="hljs-string">'postgres'</span> || client === <span class="hljs-string">'postgresql'</span>) {
+        <span class="hljs-keyword">try</span> {
+            pg = <span class="hljs-built_in">require</span>(<span class="hljs-string">'pg'</span>);
+        } <span class="hljs-keyword">catch</span> (e) {
+            pg = <span class="hljs-built_in">require</span>(<span class="hljs-string">'pg.js'</span>);
+        }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>By default PostgreSQL returns data as strings along with an OID that identifies
+its type.  We&#39;re setting the parser to convert OID 20 (int8) into a javascript
+integer.</p></div></div><div class="code"><div class="wrapper">        pg.types.setTypeParser(<span class="hljs-number">20</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(val)</span> </span>{
+            <span class="hljs-keyword">return</span> val === <span class="hljs-literal">null</span> ? <span class="hljs-literal">null</span> : <span class="hljs-built_in">parseInt</span>(val, <span class="hljs-number">10</span>);
+        });
+    }
+}</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p>Allows you to set the config object.</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>config must be an Object.</strong><br/>(Only accepts an object at the moment.)</li>
+</ul></div></div><div class="code"><div class="wrapper">ConfigManager.prototype.set = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(config)</span> </span>{
+    <span class="hljs-keyword">let</span> localPath = <span class="hljs-string">''</span>,
+        contentPath,
+        subdir,
+        assetHash;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Merge passed in config object onto our existing config object.
+We&#39;re using merge here as it doesn&#39;t assign <code>undefined</code> properties
+onto our cached config object.  This allows us to only update our
+local copy with properties that have been explicitly set.</p></div></div><div class="code"><div class="wrapper">    _.merge(<span class="hljs-keyword">this</span>._config, config);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Protect against accessing a non-existant object.
+This ensures there&#39;s always at least a paths object
+because it&#39;s referenced in multiple places.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">this</span>._config.paths = <span class="hljs-keyword">this</span>._config.paths || {};</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Parse local path location</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>._config.url) {
+        localPath = url.parse(<span class="hljs-keyword">this</span>._config.url).path;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Remove trailing slash</p></div></div><div class="code"><div class="wrapper">        <span class="hljs-keyword">if</span> (localPath !== <span class="hljs-string">'/'</span>) {
+            localPath = localPath.replace(<span class="hljs-regexp">/\/$/</span>, <span class="hljs-string">''</span>);
+        }
+    }
+
+    subdir = localPath === <span class="hljs-string">'/'</span> ? <span class="hljs-string">''</span> : localPath;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Allow contentPath to be over-written by passed in config object
+Otherwise default to default content path location</p></div></div><div class="code"><div class="wrapper">    contentPath = <span class="hljs-keyword">this</span>._config.paths.contentPath || path.resolve(appRoot, <span class="hljs-string">'content'</span>);
+
+    assetHash = <span class="hljs-keyword">this</span>._config.assetHash ||
+        (crypto.createHash(<span class="hljs-string">'md5'</span>).update(packageInfo.version + <span class="hljs-built_in">Date</span>.now()).digest(<span class="hljs-string">'hex'</span>)).substring(<span class="hljs-number">0</span>, <span class="hljs-number">10</span>);
+
+    <span class="hljs-keyword">if</span> (!knexInstance &amp;&amp; <span class="hljs-keyword">this</span>._config.database &amp;&amp; <span class="hljs-keyword">this</span>._config.database.client) {
+        configureDriver(<span class="hljs-keyword">this</span>._config.database.client);
+        knexInstance = knex(<span class="hljs-keyword">this</span>._config.database);
+    }
+
+    _.merge(<span class="hljs-keyword">this</span>._config, {
+        database: {
+            knex: knexInstance
+        },
+        ghostVersion: packageInfo.version,
+        paths: {
+            appRoot:          appRoot,
+            subdir:           subdir,
+            config:           <span class="hljs-keyword">this</span>._config.paths.config || path.join(appRoot, <span class="hljs-string">'config.js'</span>),
+            configExample:    path.join(appRoot, <span class="hljs-string">'config.example.js'</span>),
+            corePath:         corePath,
+
+            contentPath:      contentPath,
+            themePath:        path.resolve(contentPath, <span class="hljs-string">'themes'</span>),
+            appPath:          path.resolve(contentPath, <span class="hljs-string">'apps'</span>),
+            imagesPath:       path.resolve(contentPath, <span class="hljs-string">'images'</span>),
+            imagesRelPath:    <span class="hljs-string">'content/images'</span>,
+
+            adminViews:       path.join(corePath, <span class="hljs-string">'/server/views/'</span>),
+            helperTemplates:  path.join(corePath, <span class="hljs-string">'/server/helpers/tpl/'</span>),
+            exportPath:       path.join(corePath, <span class="hljs-string">'/server/data/export/'</span>),
+            lang:             path.join(corePath, <span class="hljs-string">'/shared/lang/'</span>),
+
+            availableThemes:  <span class="hljs-keyword">this</span>._config.paths.availableThemes || {},
+            availableApps:    <span class="hljs-keyword">this</span>._config.paths.availableApps || {},
+            builtScriptPath:  path.join(corePath, <span class="hljs-string">'built/scripts/'</span>)
+        },
+        theme: {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>normalise the URL by removing any trailing slash</p></div></div><div class="code"><div class="wrapper">            url: <span class="hljs-keyword">this</span>._config.url ? <span class="hljs-keyword">this</span>._config.url.replace(<span class="hljs-regexp">/\/$/</span>, <span class="hljs-string">''</span>) : <span class="hljs-string">''</span>
+        },
+        slugs: {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Used by generateSlug to generate slugs for posts, tags, users, ..
+reserved slugs are reserved but can be extended/removed by apps
+protected slugs cannot be changed or removed</p></div></div><div class="code"><div class="wrapper">            reserved: [<span class="hljs-string">'admin'</span>, <span class="hljs-string">'app'</span>, <span class="hljs-string">'apps'</span>, <span class="hljs-string">'archive'</span>, <span class="hljs-string">'archives'</span>, <span class="hljs-string">'categories'</span>, <span class="hljs-string">'category'</span>, <span class="hljs-string">'dashboard'</span>, <span class="hljs-string">'feed'</span>, <span class="hljs-string">'ghost-admin'</span>, <span class="hljs-string">'login'</span>, <span class="hljs-string">'logout'</span>, <span class="hljs-string">'page'</span>, <span class="hljs-string">'pages'</span>, <span class="hljs-string">'post'</span>, <span class="hljs-string">'posts'</span>, <span class="hljs-string">'public'</span>, <span class="hljs-string">'register'</span>, <span class="hljs-string">'setup'</span>, <span class="hljs-string">'signin'</span>, <span class="hljs-string">'signout'</span>, <span class="hljs-string">'signup'</span>, <span class="hljs-string">'tag'</span>, <span class="hljs-string">'tags'</span>, <span class="hljs-string">'user'</span>, <span class="hljs-string">'users'</span>, <span class="hljs-string">'wp-admin'</span>, <span class="hljs-string">'wp-login'</span>],
+            protected: [<span class="hljs-string">'ghost'</span>, <span class="hljs-string">'rss'</span>]
+        },
+        uploads: {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Used by the upload API to limit uploads to images</p></div></div><div class="code"><div class="wrapper">            extensions: [<span class="hljs-string">'.jpg'</span>, <span class="hljs-string">'.jpeg'</span>, <span class="hljs-string">'.gif'</span>, <span class="hljs-string">'.png'</span>, <span class="hljs-string">'.svg'</span>, <span class="hljs-string">'.svgz'</span>],
+            contentTypes: [<span class="hljs-string">'image/jpeg'</span>, <span class="hljs-string">'image/png'</span>, <span class="hljs-string">'image/gif'</span>, <span class="hljs-string">'image/svg+xml'</span>]
+        },
+        deprecatedItems: [<span class="hljs-string">'updateCheck'</span>, <span class="hljs-string">'mail.fromaddress'</span>],</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>create a hash for cache busting assets</p></div></div><div class="code"><div class="wrapper">        assetHash: assetHash
+    });</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Also pass config object to
+configUrl object to maintain
+clean dependency tree</p></div></div><div class="code"><div class="wrapper">    configUrl.setConfig(<span class="hljs-keyword">this</span>._config);</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> TODO a function?</span></p>
+<p>For now we&#39;re going to copy the current state of this._config
+so it&#39;s directly accessible on the instance.</p></div></div><div class="code"><div class="wrapper">    _.extend(<span class="hljs-keyword">this</span>, <span class="hljs-keyword">this</span>._config);
+};</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p>Allows you to read the config object.</p>
+<p><strong>Returns an Object</strong><br/>(The config object.)</p></div></div><div class="code"><div class="wrapper">ConfigManager.prototype.get = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._config;
+};
+
+ConfigManager.prototype.load = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(configFilePath)</span> </span>{
+    <span class="hljs-keyword">let</span> self = <span class="hljs-keyword">this</span>;
+
+    self._config.paths.config = process.env.GHOST_CONFIG || configFilePath || self._config.paths.config;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Check for config file and copy from config.example.js
+    if one doesn&#39;t exist. After that, start the server. </p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Promise(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(resolve, reject)</span> </span>{
+        fs.exists(self._config.paths.config, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(exists)</span> </span>{
+            <span class="hljs-keyword">let</span> pendingConfig;
+
+            <span class="hljs-keyword">if</span> (!exists) {
+                pendingConfig = self.writeFile();
+            }
+
+            Promise.resolve(pendingConfig).then(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+                <span class="hljs-keyword">return</span> self.validate();
+            }).then(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(rawConfig)</span> </span>{
+                resolve(self.init(rawConfig));
+            }).catch(reject);
+        });
+    });
+};</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Check for config file and copy from config.example.js
+    if one doesn&#39;t exist. After that, start the server. </p></div></div><div class="code"><div class="wrapper">ConfigManager.prototype.writeFile = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">let</span> configPath = <span class="hljs-keyword">this</span>._config.paths.config,
+        configExamplePath = <span class="hljs-keyword">this</span>._config.paths.configExample;
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Promise(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(resolve, reject)</span> </span>{
+        fs.exists(configExamplePath, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">checkTemplate</span><span class="hljs-params">(templateExists)</span> </span>{
+            <span class="hljs-keyword">let</span> read,
+                write,
+                error;
+
+            <span class="hljs-keyword">if</span> (!templateExists) {
+                error = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Could not locate a configuration file.'</span>);
+                error.context = appRoot;
+                error.help = <span class="hljs-string">'Please check your deployment for config.js or config.example.js.'</span>;
+
+                <span class="hljs-keyword">return</span> reject(error);
+            }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Copy config.example.js =&gt; config.js</p></div></div><div class="code"><div class="wrapper">            read = fs.createReadStream(configExamplePath);
+            read.on(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(err)</span> </span>{
+                errors.logError(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Could not open config.example.js for read.'</span>), appRoot, <span class="hljs-string">'Please check your deployment for config.js or config.example.js.'</span>);
+
+                reject(err);
+            });
+
+            write = fs.createWriteStream(configPath);
+            write.on(<span class="hljs-string">'error'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(err)</span> </span>{
+                errors.logError(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Could not open config.js for write.'</span>), appRoot, <span class="hljs-string">'Please check your deployment for config.js or config.example.js.'</span>);
+
+                reject(err);
+            });
+
+            write.on(<span class="hljs-string">'finish'</span>, resolve);
+
+            read.pipe(write);
+        });
+    });
+};</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p>Read config.js file from file system using node&#39;s require</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>envVal must be a String.</strong><br/>(Which environment we&#39;re in.)</li>
+</ul>
+<p><strong>Returns an Object</strong><br/>(The config object.)</p></div></div><div class="code"><div class="wrapper">ConfigManager.prototype.readFile = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(envVal)</span> </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-built_in">require</span>(<span class="hljs-keyword">this</span>._config.paths.config)[envVal];
+};</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p>Validates the config object has everything we want and in the form we want.</p>
+<p><strong>Returns a Promise.<Object></strong><br/>(Returns a promise that resolves to the config object.)</p></div></div><div class="code"><div class="wrapper">ConfigManager.prototype.validate = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">let</span> envVal = process.env.NODE_ENV || <span class="hljs-literal">undefined</span>,
+        hasHostAndPort,
+        hasSocket,
+        config,
+        parsedUrl;
+
+    <span class="hljs-keyword">try</span> {
+        config = <span class="hljs-keyword">this</span>.readFile(envVal);
+    }
+    <span class="hljs-keyword">catch</span> (e) {
+        <span class="hljs-keyword">return</span> Promise.reject(e);
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Check if we don&#39;t even have a config</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (!config) {
+        errors.logError(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Cannot find the configuration for the current NODE_ENV'</span>), <span class="hljs-string">'NODE_ENV='</span> + envVal,
+            <span class="hljs-string">'Ensure your config.js has a section for the current NODE_ENV value and is formatted properly.'</span>);
+
+        <span class="hljs-keyword">return</span> Promise.reject(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Unable to load config for NODE_ENV='</span> + envVal));
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Check that our url is valid</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (!validator.isURL(config.url, {protocols: [<span class="hljs-string">'http'</span>, <span class="hljs-string">'https'</span>], require_protocol: <span class="hljs-literal">true</span>})) {
+        errors.logError(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Your site url in config.js is invalid.'</span>), config.url, <span class="hljs-string">'Please make sure this is a valid url before restarting'</span>);
+
+        <span class="hljs-keyword">return</span> Promise.reject(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'invalid site url'</span>));
+    }
+
+    parsedUrl = url.parse(config.url || <span class="hljs-string">'invalid'</span>, <span class="hljs-literal">false</span>, <span class="hljs-literal">true</span>);
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-regexp">/\/ghost(\/|$)/</span>.test(parsedUrl.pathname)) {
+        errors.logError(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Your site url in config.js cannot contain a subdirectory called ghost.'</span>), config.url, <span class="hljs-string">'Please rename the subdirectory before restarting'</span>);
+
+        <span class="hljs-keyword">return</span> Promise.reject(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'ghost subdirectory not allowed'</span>));
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Check that we have database values</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (!config.database || !config.database.client) {
+        errors.logError(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Your database configuration in config.js is invalid.'</span>), <span class="hljs-built_in">JSON</span>.stringify(config.database), <span class="hljs-string">'Please make sure this is a valid Bookshelf database configuration'</span>);
+
+        <span class="hljs-keyword">return</span> Promise.reject(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'invalid database configuration'</span>));
+    }
+
+    hasHostAndPort = config.server &amp;&amp; !!config.server.host &amp;&amp; !!config.server.port;
+    hasSocket = config.server &amp;&amp; !!config.server.socket;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Check for valid server host and port values</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (!config.server || !(hasHostAndPort || hasSocket)) {
+        errors.logError(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Your server values (socket, or host and port) in config.js are invalid.'</span>), <span class="hljs-built_in">JSON</span>.stringify(config.server), <span class="hljs-string">'Please provide them before restarting.'</span>);
+
+        <span class="hljs-keyword">return</span> Promise.reject(<span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'invalid server configuration'</span>));
+    }
+
+    <span class="hljs-keyword">return</span> Promise.resolve(config);
+};</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p>Helper method for checking the state of a particular privacy flag</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>privacyFlag must be a String.</strong><br/>(The flag to check)</li>
+</ul>
+<p><strong>Returns a boolean</strong></p></div></div><div class="code"><div class="wrapper">ConfigManager.prototype.isPrivacyDisabled = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(privacyFlag)</span> </span>{
+    <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">this</span>.privacy) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">false</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.privacy.useTinfoil === <span class="hljs-literal">true</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">true</span>;
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.privacy[privacyFlag] === <span class="hljs-literal">false</span>;
+};</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Check if any of the currently set config items are deprecated, and issues a warning.</p></div></div><div class="code"><div class="wrapper">ConfigManager.prototype.checkDeprecated = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">let</span> self = <span class="hljs-keyword">this</span>;
+    _.each(<span class="hljs-keyword">this</span>.deprecatedItems, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(property)</span> </span>{
+        self.displayDeprecated(self, property.split(<span class="hljs-string">'.'</span>), []);
+    });
+};
+
+ConfigManager.prototype.displayDeprecated = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(item, properties, address)</span> </span>{
+    <span class="hljs-keyword">let</span> self = <span class="hljs-keyword">this</span>,
+        property = properties.shift(),
+        errorText,
+        explanationText,
+        helpText;
+
+    address.push(property);
+
+    <span class="hljs-keyword">if</span> (item.hasOwnProperty(property)) {
+        <span class="hljs-keyword">if</span> (properties.length) {
+            <span class="hljs-keyword">return</span> self.displayDeprecated(item[property], properties, address);
+        }
+        errorText = <span class="hljs-string">'The configuration property ['</span> + address.join(<span class="hljs-string">'.'</span>).bold + <span class="hljs-string">'] has been deprecated.'</span>;
+        explanationText =  <span class="hljs-string">'This will be removed in a future version, please update your config.js file.'</span>;
+        helpText = <span class="hljs-string">'Please check http://support.ghost.org/config for the most up-to-date example.'</span>;
+        errors.logWarn(errorText, explanationText, helpText);
+    }
+};
+
+<span class="hljs-keyword">if</span> (testingEnvs.indexOf(process.env.NODE_ENV) &gt; -<span class="hljs-number">1</span>) {
+    defaultConfig  = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../../../config.example'</span>)[process.env.NODE_ENV];
+}
+
+<span class="hljs-built_in">module</span>.exports = <span class="hljs-keyword">new</span> ConfigManager(defaultConfig);</div></div></div></div></body></html>

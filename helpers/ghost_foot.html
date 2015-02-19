@@ -1,0 +1,24 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/ghost_foot</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/ghost_foot"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/ghost_foot.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/ghost_foot.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="ghost-foot-helper">Ghost Foot Helper</h1>
+<p>Usage: <code>{{ghost_foot}}</code></p>
+<p>Outputs scripts and other assets at the bottom of a Ghost theme</p>
+<p>We use the name ghost_foot to match the helper for consistency:
+jscs:disable requireCamelCaseOrUpperCaseIdentifiers</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> handlebars             = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>),
+    _               = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>),
+    utils           = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./utils'</span>),
+    ghost_foot;
+
+ghost_foot = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-comment">/*jshint unused:false*/</span>
+    <span class="hljs-keyword">var</span> foot = [];
+
+    foot.push(utils.scriptTemplate({
+        source: <span class="hljs-string">'https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js'</span>,
+        version: <span class="hljs-string">''</span>
+    }));
+
+
+    <span class="hljs-keyword">var</span> footString = _.reduce(foot, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(memo, item)</span> </span>{ <span class="hljs-keyword">return</span> memo + <span class="hljs-string">' '</span> + item; }, <span class="hljs-string">''</span>);
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> handlebars.SafeString(footString.trim());
+};
+
+<span class="hljs-built_in">module</span>.exports = ghost_foot;</div></div></div></div></body></html>

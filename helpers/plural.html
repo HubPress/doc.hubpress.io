@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/plural</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/plural"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/plural.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/plural.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="plural-helper">Plural Helper</h1>
+<p>Usage: <code>{{plural 0 empty=&#39;No posts&#39; singular=&#39;% post&#39; plural=&#39;% posts&#39;}}</code></p>
+<p>pluralises strings depending on item count</p>
+<p>The 1st argument is the numeric variable which the helper operates on
+The 2nd argument is the string that will be output if the variable&#39;s value is 0
+The 3rd argument is the string that will be output if the variable&#39;s value is 1
+The 4th argument is the string that will be output if the variable&#39;s value is 2+</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> handlebars             = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>),
+    <span class="hljs-comment">//errors          = require('../errors'),</span>
+    _               = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>),
+    plural;
+
+plural = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(context, options)</span> </span>{
+    <span class="hljs-keyword">if</span> (_.isUndefined(options.hash) || _.isUndefined(options.hash.empty) ||
+        _.isUndefined(options.hash.singular) || _.isUndefined(options.hash.plural)) {
+          <span class="hljs-keyword">var</span> err = <span class="hljs-string">'All values must be defined for empty, singular and plural'</span>;
+          <span class="hljs-built_in">console</span>.log(err);
+          <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(err);
+        <span class="hljs-keyword">return</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (context === <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> handlebars.SafeString(options.hash.empty);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (context === <span class="hljs-number">1</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> handlebars.SafeString(options.hash.singular.replace(<span class="hljs-string">'%'</span>, context));
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (context &gt;= <span class="hljs-number">2</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> handlebars.SafeString(options.hash.plural.replace(<span class="hljs-string">'%'</span>, context));
+    }
+};
+
+<span class="hljs-built_in">module</span>.exports = plural;</div></div></div></div></body></html>

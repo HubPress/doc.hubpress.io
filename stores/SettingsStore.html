@@ -1,0 +1,128 @@
+<!DOCTYPE html><html lang="en"><head><title>stores/SettingsStore</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="stores/SettingsStore"><meta name="groc-project-path" content="src/hubpress/scripts/stores/SettingsStore.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/stores/SettingsStore.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> EventEmitter = <span class="hljs-built_in">require</span>(<span class="hljs-string">'events'</span>).EventEmitter;
+<span class="hljs-keyword">const</span> assign = <span class="hljs-built_in">require</span>(<span class="hljs-string">'object-assign'</span>);
+<span class="hljs-keyword">const</span> HpDispatcher = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../dispatchers/HpDispatcher'</span>);
+import HpConstants from <span class="hljs-string">'../constants/HpConstants'</span>;
+
+
+<span class="hljs-keyword">const</span> ActionTypes = HpConstants.ActionTypes;
+<span class="hljs-keyword">const</span> CHANGE_EVENT = <span class="hljs-string">'change'</span>;
+
+<span class="hljs-keyword">let</span> _config;
+<span class="hljs-keyword">let</span> _db;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_loadConfig</span> <span class="hljs-params">(config)</span> </span>{
+  <span class="hljs-keyword">let</span> urlSite;
+  _config = config;
+
+  <span class="hljs-keyword">if</span> (_config.meta.cname) {
+    urlSite = <span class="hljs-string">'http://'</span>+_config.meta.cname;
+  } <span class="hljs-keyword">else</span> {
+    urlSite = <span class="hljs-string">'http://'</span>+_config.meta.username + <span class="hljs-string">'.github.io/'</span>+_config.meta.repositoryName;
+  }
+
+  _config.site = assign({}, _config.site, {
+    url: urlSite
+  });
+
+};
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dispatcher</span><span class="hljs-params">(payload)</span> </span>{
+  <span class="hljs-keyword">let</span> action = payload.action;
+  <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'SettingsStores - dispatcher'</span>);
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'SettingsStores - dispatcher'</span>, action);
+
+  <span class="hljs-keyword">switch</span>(action.type) {
+    <span class="hljs-keyword">case</span> ActionTypes.RECEIVE_INIT:
+      _loadConfig(action.config);
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.RECEIVE_SETTINGS:
+      <span class="hljs-keyword">this</span>.message = action.message;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.SAVEANDPUBLISH_SETTINGS:
+      _config = action.settings;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">default</span>:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>nothing</p></div></div><div class="code"><div class="wrapper">  }
+
+}
+
+<span class="hljs-keyword">class</span> SettingsStore extends EventEmitter {
+
+  constructor() {
+    <span class="hljs-keyword">this</span>.message = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.dispatcherToken = HpDispatcher.register(dispatcher.bind(<span class="hljs-keyword">this</span>));
+  }
+
+  emitChange() {
+    <span class="hljs-keyword">this</span>.emit(CHANGE_EVENT);
+  }
+
+  addChangeListener(callback) {
+    <span class="hljs-keyword">this</span>.on(CHANGE_EVENT, callback);
+  }
+
+  removeChangeListener(callback) {
+    <span class="hljs-keyword">this</span>.removeListener(CHANGE_EVENT, callback);
+  }
+
+  getDbName(config) {
+    <span class="hljs-keyword">return</span> <span class="hljs-string">'hubpress-'</span> + config.meta.username+<span class="hljs-string">'-'</span>+config.meta.repositoryName;
+  }
+
+  getSiteUrl(_meta) {
+    <span class="hljs-keyword">let</span> meta = _meta || _config.meta;
+    <span class="hljs-keyword">let</span> url;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>TODO change that</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (meta.cname &amp;&amp; meta.cname !== <span class="hljs-string">''</span>) {
+      url = <span class="hljs-string">'http://'</span>+meta.cname;
+    }
+    <span class="hljs-keyword">else</span> {
+      url = `http:<span class="hljs-comment">//${meta.username}.github.io`</span>
+      <span class="hljs-keyword">if</span> (meta.branch !== <span class="hljs-string">'master'</span>) {
+        url = url + <span class="hljs-string">'/'</span> + meta.repositoryName;
+      }
+    }
+
+    <span class="hljs-keyword">return</span> url;
+  }
+
+  getHubpressUrl(_meta) {
+    <span class="hljs-keyword">let</span> meta = _meta || _config.meta;
+    <span class="hljs-keyword">let</span> url = <span class="hljs-built_in">window</span>.location.protocol + <span class="hljs-string">"//"</span> + <span class="hljs-built_in">window</span>.location.host;
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">window</span>.location.host === `${meta.username}.github.io` || <span class="hljs-built_in">window</span>.location.host === `${meta.username}.github.com`) {
+      <span class="hljs-keyword">if</span> (meta.branch !== <span class="hljs-string">"master"</span>) {
+        url = url + <span class="hljs-string">"/"</span> + meta.repositoryName;
+      }
+    }
+    <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">if</span> (meta.branch !== <span class="hljs-string">"master"</span> &amp;&amp; (!meta.cname || meta.cname === <span class="hljs-string">""</span>)) {
+        url = url + <span class="hljs-string">"/"</span> + meta.repositoryName;
+      }
+    }
+
+    <span class="hljs-keyword">return</span> url;
+  }
+
+  getThemeUrl(name) {
+    <span class="hljs-keyword">let</span> url = <span class="hljs-keyword">this</span>.getSiteUrl();
+    url += `/themes/${name}`;
+    <span class="hljs-keyword">return</span> url;
+  }
+
+  getImagesUrl() {
+    <span class="hljs-keyword">let</span> url = <span class="hljs-keyword">this</span>.getSiteUrl();
+    url += <span class="hljs-string">'/images'</span>;
+    <span class="hljs-keyword">return</span> url;
+  }
+
+  isReady() {
+    <span class="hljs-keyword">return</span> !!_config;
+  }
+
+  config() {
+    <span class="hljs-keyword">return</span> _config;
+  }
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> SettingsStore();</div></div></div></div></body></html>

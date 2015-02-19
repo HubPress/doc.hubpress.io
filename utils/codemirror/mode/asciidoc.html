@@ -1,0 +1,537 @@
+<!DOCTYPE html><html lang="en"><head><title>utils/codemirror/mode/asciidoc</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../../../"><meta name="groc-document-path" content="utils/codemirror/mode/asciidoc"><meta name="groc-project-path" content="src/hubpress/scripts/utils/codemirror/mode/asciidoc.js"><link rel="stylesheet" type="text/css" media="all" href="../../../assets/style.css"><script type="text/javascript" src="../../../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/utils/codemirror/mode/asciidoc.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(mod)</span> </span>{
+  <span class="hljs-keyword">var</span> CodeMirror = <span class="hljs-built_in">require</span>(<span class="hljs-string">'codemirror/lib/codemirror'</span>);
+  mod(CodeMirror);
+})(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(CodeMirror)</span> </span>{
+<span class="hljs-pi">    "use strict"</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Parts from Ace; see <a href="https://raw.githubusercontent.com/ajaxorg/ace/master/LICENSE">https://raw.githubusercontent.com/ajaxorg/ace/master/LICENSE</a></p></div></div><div class="code"><div class="wrapper">CodeMirror.defineMode(<span class="hljs-string">"asciidoc"</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(cmCfg, modeCfg)</span> </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Ace highlight rules function imported below.</p></div></div><div class="code"><div class="wrapper">  <span class="hljs-keyword">var</span> HighlightRules = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      <span class="hljs-keyword">var</span> identifierRe = <span class="hljs-string">"[a-zA-Z\u00a1-\uffff]+\\b"</span>;
+
+      <span class="hljs-keyword">this</span>.$rules = {
+          <span class="hljs-string">"start"</span>: [
+              {token: <span class="hljs-string">"empty"</span>,   regex: <span class="hljs-regexp">/$/</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/^\.{4,}\s*$/</span>,  next: <span class="hljs-string">"listingBlock"</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/^-{4,}\s*$/</span>,   next: <span class="hljs-string">"literalBlock"</span>},
+              {token: <span class="hljs-string">"string"</span>,  regex: <span class="hljs-regexp">/^\+{4,}\s*$/</span>,  next: <span class="hljs-string">"passthroughBlock"</span>},
+              {token: <span class="hljs-string">"keyword"</span>, regex: <span class="hljs-regexp">/^={4,}\s*$/</span>},
+              {token: <span class="hljs-string">"text"</span>,    regex: <span class="hljs-regexp">/^\s*$/</span>},</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>immediately return to the start mode without matching anything</p></div></div><div class="code"><div class="wrapper">              {token: <span class="hljs-string">"empty"</span>, regex: <span class="hljs-string">""</span>, next: <span class="hljs-string">"dissallowDelimitedBlock"</span>}
+          ],
+
+          <span class="hljs-string">"dissallowDelimitedBlock"</span>: [
+              {include: <span class="hljs-string">"paragraphEnd"</span>},
+              {token: <span class="hljs-string">"comment"</span>, regex: <span class="hljs-string">'^//.+$'</span>},
+              {token: <span class="hljs-string">"keyword"</span>, regex: <span class="hljs-string">"^(?:NOTE|TIP|IMPORTANT|WARNING|CAUTION):"</span>},
+
+              {include: <span class="hljs-string">"listStart"</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/^\s+.+$/</span>, next: <span class="hljs-string">"indentedBlock"</span>},
+              {token: <span class="hljs-string">"empty"</span>,   regex: <span class="hljs-string">""</span>, next: <span class="hljs-string">"text"</span>}
+          ],
+
+          <span class="hljs-string">"paragraphEnd"</span>: [
+              {token: <span class="hljs-string">"doc.comment"</span>, regex: <span class="hljs-regexp">/^\/{4,}\s*$/</span>,    next: <span class="hljs-string">"commentBlock"</span>},
+              {token: <span class="hljs-string">"tableBlock"</span>,  regex: <span class="hljs-regexp">/^\s*[|!]=+\s*$/</span>, next: <span class="hljs-string">"tableBlock"</span>},</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>open block, ruller</p></div></div><div class="code"><div class="wrapper">              {token: <span class="hljs-string">"keyword"</span>,     regex: <span class="hljs-regexp">/^(?:--|''')\s*$/</span>, next: <span class="hljs-string">"start"</span>},
+              {token: <span class="hljs-string">"option"</span>,      regex: <span class="hljs-regexp">/^\[.*\]\s*$/</span>,     next: <span class="hljs-string">"start"</span>},
+              {token: <span class="hljs-string">"pageBreak"</span>,   regex: <span class="hljs-regexp">/^&gt;{3,}$/</span>,         next: <span class="hljs-string">"start"</span>},
+              {token: <span class="hljs-string">"literal"</span>,     regex: <span class="hljs-regexp">/^\.{4,}\s*$/</span>,     next: <span class="hljs-string">"listingBlock"</span>},
+              {token: <span class="hljs-string">"titleUnderline"</span>,    regex: <span class="hljs-regexp">/^(?:={2,}|-{2,}|~{2,}|\^{2,}|\+{2,})\s*$/</span>, next: <span class="hljs-string">"start"</span>},
+              {token: <span class="hljs-string">"singleLineTitle"</span>,   regex: <span class="hljs-regexp">/^={1,5}\s+\S.*$/</span>, next: <span class="hljs-string">"start"</span>},
+
+              {token: <span class="hljs-string">"otherBlock"</span>,    regex: <span class="hljs-regexp">/^(?:\*{2,}|_{2,})\s*$/</span>, next: <span class="hljs-string">"start"</span>},</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>.optional title</p></div></div><div class="code"><div class="wrapper">              {token: <span class="hljs-string">"optionalTitle"</span>, regex: <span class="hljs-regexp">/^\.[^.\s].+$/</span>,  next: <span class="hljs-string">"start"</span>}
+          ],
+
+          <span class="hljs-string">"listStart"</span>: [
+              {token: <span class="hljs-string">"keyword"</span>,  regex: <span class="hljs-regexp">/^\s*(?:\d+\.|[a-zA-Z]\.|[ixvmIXVM]+\)|\*{1,5}|-|\.{1,5})\s/</span>, next: <span class="hljs-string">"listText"</span>},
+              {token: <span class="hljs-string">"meta.tag"</span>, regex: <span class="hljs-regexp">/^.+(?::{2,4}|;;)(?: |$)/</span>, next: <span class="hljs-string">"listText"</span>},
+              {token: <span class="hljs-string">"support.function.list.callout"</span>, regex: <span class="hljs-regexp">/^(?:&lt;\d+&gt;|\d+&gt;|&gt;) /</span>, next: <span class="hljs-string">"text"</span>},</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>continuation</p></div></div><div class="code"><div class="wrapper">              {token: <span class="hljs-string">"keyword"</span>,  regex: <span class="hljs-regexp">/^\+\s*$/</span>, next: <span class="hljs-string">"start"</span>}
+          ],
+
+          <span class="hljs-string">"text"</span>: [
+              {token: [<span class="hljs-string">"link"</span>, <span class="hljs-string">"variable.language"</span>], regex: <span class="hljs-regexp">/((?:https?:\/\/|ftp:\/\/|file:\/\/|mailto:|callto:)[^\s\[]+)(\[.*?\])/</span>},
+              {token: <span class="hljs-string">"link"</span>, regex: <span class="hljs-regexp">/(?:https?:\/\/|ftp:\/\/|file:\/\/|mailto:|callto:)[^\s\[]+/</span>},
+              {token: <span class="hljs-string">"link"</span>, regex: <span class="hljs-regexp">/\b[\w\.\/\-]+@[\w\.\/\-]+\b/</span>},
+              {include: <span class="hljs-string">"macros"</span>},
+              {include: <span class="hljs-string">"paragraphEnd"</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex:<span class="hljs-regexp">/\+{3,}/</span>, next:<span class="hljs-string">"smallPassthrough"</span>},
+              {token: <span class="hljs-string">"escape"</span>, regex: <span class="hljs-regexp">/\((?:C|TM|R)\)|\.{3}|-&gt;|&lt;-|=&gt;|&lt;=|&amp;#(?:\d+|x[a-fA-F\d]+);|(?: |^)--(?=\s+\S)/</span>},
+              {token: <span class="hljs-string">"escape"</span>, regex: <span class="hljs-regexp">/\\[_*'`+#]|\\{2}[_*'`+#]{2}/</span>},
+              {token: <span class="hljs-string">"keyword"</span>, regex: <span class="hljs-regexp">/\s\+$/</span>},</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>any word</p></div></div><div class="code"><div class="wrapper">              {token: <span class="hljs-string">"text"</span>, regex: identifierRe},
+              {token: [<span class="hljs-string">"keyword"</span>, <span class="hljs-string">"string"</span>, <span class="hljs-string">"keyword"</span>],
+                  regex: <span class="hljs-regexp">/(&lt;&lt;[\w\d\-$]+,)(.*?)(&gt;&gt;|$)/</span>},
+              {token: <span class="hljs-string">"keyword"</span>, regex: <span class="hljs-regexp">/&lt;&lt;[\w\d\-$]+,?|&gt;&gt;/</span>},
+              {token: <span class="hljs-string">"constant.character"</span>, regex: <span class="hljs-regexp">/\({2,3}.*?\){2,3}/</span>},</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Anchor</p></div></div><div class="code"><div class="wrapper">              {token: <span class="hljs-string">"keyword"</span>, regex: <span class="hljs-regexp">/\[\[.+?\]\]/</span>},</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>bibliography</p></div></div><div class="code"><div class="wrapper">              {token: <span class="hljs-string">"support"</span>, regex: <span class="hljs-regexp">/^\[{3}[\w\d =\-]+\]{3}/</span>},
+
+              {include: <span class="hljs-string">"quotes"</span>},</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>text block end</p></div></div><div class="code"><div class="wrapper">              {token: <span class="hljs-string">"empty"</span>, regex: <span class="hljs-regexp">/^\s*$/</span>, next: <span class="hljs-string">"start"</span>}
+          ],
+
+          <span class="hljs-string">"listText"</span>: [
+              {include: <span class="hljs-string">"listStart"</span>},
+              {include: <span class="hljs-string">"text"</span>}
+          ],
+
+          <span class="hljs-string">"indentedBlock"</span>: [
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/^[\s\w].+$/</span>, next: <span class="hljs-string">"indentedBlock"</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-string">""</span>, next: <span class="hljs-string">"start"</span>}
+          ],
+
+          <span class="hljs-string">"listingBlock"</span>: [
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/^\.{4,}\s*$/</span>, next: <span class="hljs-string">"dissallowDelimitedBlock"</span>},
+              {token: <span class="hljs-string">"constant.numeric"</span>, regex: <span class="hljs-string">'&lt;\\d+&gt;'</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-string">'[^&lt;]+'</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-string">'&lt;'</span>}
+          ],
+          <span class="hljs-string">"literalBlock"</span>: [
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/^-{4,}\s*$/</span>, next: <span class="hljs-string">"dissallowDelimitedBlock"</span>},
+              {token: <span class="hljs-string">"constant.numeric"</span>, regex: <span class="hljs-string">'&lt;\\d+&gt;'</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-string">'[^&lt;]+'</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-string">'&lt;'</span>}
+          ],
+          <span class="hljs-string">"passthroughBlock"</span>: [
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/^\+{4,}\s*$/</span>, next: <span class="hljs-string">"dissallowDelimitedBlock"</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: identifierRe + <span class="hljs-string">"|\\d+"</span>},
+              {include: <span class="hljs-string">"macros"</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-string">"."</span>}
+          ],
+
+          <span class="hljs-string">"smallPassthrough"</span>: [
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/[+]{3,}/</span>, next: <span class="hljs-string">"dissallowDelimitedBlock"</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/^\s*$/</span>, next: <span class="hljs-string">"dissallowDelimitedBlock"</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: identifierRe + <span class="hljs-string">"|\\d+"</span>},
+              {include: <span class="hljs-string">"macros"</span>}
+          ],
+
+          <span class="hljs-string">"commentBlock"</span>: [
+              {token: <span class="hljs-string">"doc.comment"</span>, regex: <span class="hljs-regexp">/^\/{4,}\s*$/</span>, next: <span class="hljs-string">"dissallowDelimitedBlock"</span>},
+              {token: <span class="hljs-string">"doc.comment"</span>, regex: <span class="hljs-string">'^.*$'</span>}
+          ],
+          <span class="hljs-string">"tableBlock"</span>: [
+              {token: <span class="hljs-string">"tableBlock"</span>, regex: <span class="hljs-regexp">/^\s*\|={3,}\s*$/</span>, next: <span class="hljs-string">"dissallowDelimitedBlock"</span>},
+              {token: <span class="hljs-string">"tableBlock"</span>, regex: <span class="hljs-regexp">/^\s*!={3,}\s*$/</span>, next: <span class="hljs-string">"innerTableBlock"</span>},
+              {token: <span class="hljs-string">"tableBlock"</span>, regex: <span class="hljs-regexp">/\|/</span>},
+              {include: <span class="hljs-string">"text"</span>, noEscape: <span class="hljs-literal">true</span>}
+          ],
+          <span class="hljs-string">"innerTableBlock"</span>: [
+              {token: <span class="hljs-string">"tableBlock"</span>, regex: <span class="hljs-regexp">/^\s*!={3,}\s*$/</span>, next: <span class="hljs-string">"tableBlock"</span>},
+              {token: <span class="hljs-string">"tableBlock"</span>, regex: <span class="hljs-regexp">/^\s*|={3,}\s*$/</span>, next: <span class="hljs-string">"dissallowDelimitedBlock"</span>},
+              {token: <span class="hljs-string">"tableBlock"</span>, regex: <span class="hljs-regexp">/\!/</span>}
+          ],
+          <span class="hljs-string">"macros"</span>: [
+              {token: <span class="hljs-string">"macro"</span>, regex: <span class="hljs-regexp">/{[\w\-$]+}/</span>},
+              {token: [<span class="hljs-string">"text"</span>, <span class="hljs-string">"string"</span>, <span class="hljs-string">"text"</span>, <span class="hljs-string">"constant.character"</span>, <span class="hljs-string">"text"</span>], regex: <span class="hljs-regexp">/({)([\w\-$]+)(:)?(.+)?(})/</span>},
+              {token: [<span class="hljs-string">"text"</span>, <span class="hljs-string">"markup.list.macro"</span>, <span class="hljs-string">"keyword"</span>, <span class="hljs-string">"string"</span>], regex: <span class="hljs-regexp">/(\w+)(footnote(?:ref)?::?)([^\s\[]+)?(\[.*?\])?/</span>},
+              {token: [<span class="hljs-string">"markup.list.macro"</span>, <span class="hljs-string">"keyword"</span>, <span class="hljs-string">"string"</span>], regex: <span class="hljs-regexp">/([a-zA-Z\-][\w\.\/\-]*::?)([^\s\[]+)(\[.*?\])?/</span>},
+              {token: [<span class="hljs-string">"markup.list.macro"</span>, <span class="hljs-string">"keyword"</span>], regex: <span class="hljs-regexp">/([a-zA-Z\-][\w\.\/\-]+::?)(\[.*?\])/</span>},
+              {token: <span class="hljs-string">"keyword"</span>,     regex: <span class="hljs-regexp">/^:.+?:(?= |$)/</span>}
+          ],
+
+          <span class="hljs-string">"quotes"</span>: [
+              {token: <span class="hljs-string">"string.italic"</span>, regex: <span class="hljs-regexp">/__[^_\s].*?__/</span>},
+              {token: <span class="hljs-string">"string.italic"</span>, regex: quoteRule(<span class="hljs-string">"_"</span>)},
+
+              {token: <span class="hljs-string">"keyword.bold"</span>, regex: <span class="hljs-regexp">/\*\*[^*\s].*?\*\*/</span>},
+              {token: <span class="hljs-string">"keyword.bold"</span>, regex: quoteRule(<span class="hljs-string">"\\*"</span>)},
+
+              {token: <span class="hljs-string">"literal"</span>, regex: quoteRule(<span class="hljs-string">"\\+"</span>)},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/\+\+[^+\s].*?\+\+/</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: <span class="hljs-regexp">/\$\$.+?\$\$/</span>},
+              {token: <span class="hljs-string">"literal"</span>, regex: quoteRule(<span class="hljs-string">"`"</span>)},
+
+              {token: <span class="hljs-string">"keyword"</span>, regex: quoteRule(<span class="hljs-string">"^"</span>)},
+              {token: <span class="hljs-string">"keyword"</span>, regex: quoteRule(<span class="hljs-string">"~"</span>)},
+              {token: <span class="hljs-string">"keyword"</span>, regex: <span class="hljs-regexp">/##?/</span>},
+              {token: <span class="hljs-string">"keyword"</span>, regex: <span class="hljs-regexp">/(?:\B|^)``|\b''/</span>}
+          ]
+
+      };
+
+      <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">quoteRule</span><span class="hljs-params">(ch)</span> </span>{
+          <span class="hljs-keyword">var</span> prefix = <span class="hljs-regexp">/\w/</span>.test(ch) ? <span class="hljs-string">"\\b"</span> : <span class="hljs-string">"(?:\\B|^)"</span>;
+          <span class="hljs-keyword">return</span> prefix + ch + <span class="hljs-string">"[^"</span> + ch + <span class="hljs-string">"].*?"</span> + ch + <span class="hljs-string">"(?![\\w*])"</span>;
+      }
+
+      <span class="hljs-comment">//addQuoteBlock("text")</span>
+
+      <span class="hljs-keyword">var</span> tokenMap = {
+          macro: <span class="hljs-string">"constant.character"</span>,
+          tableBlock: <span class="hljs-string">"doc.comment"</span>,
+          titleUnderline: <span class="hljs-string">"markup.heading"</span>,
+          singleLineTitle: <span class="hljs-string">"markup.heading"</span>,
+          pageBreak: <span class="hljs-string">"string"</span>,
+          option: <span class="hljs-string">"string.regexp"</span>,
+          otherBlock: <span class="hljs-string">"markup.list"</span>,
+          literal: <span class="hljs-string">"support.function"</span>,
+          optionalTitle: <span class="hljs-string">"constant.numeric"</span>,
+          <span class="hljs-built_in">escape</span>: <span class="hljs-string">"constant.language.escape"</span>,
+          link: <span class="hljs-string">"markup.underline.list"</span>
+      };
+
+      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> state <span class="hljs-keyword">in</span> <span class="hljs-keyword">this</span>.$rules) {
+          <span class="hljs-keyword">var</span> stateRules = <span class="hljs-keyword">this</span>.$rules[state];
+          <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = stateRules.length; i--; ) {
+              <span class="hljs-keyword">var</span> rule = stateRules[i];
+              <span class="hljs-keyword">if</span> (rule.include || <span class="hljs-keyword">typeof</span> rule == <span class="hljs-string">"string"</span>) {
+                  <span class="hljs-keyword">var</span> args = [i, <span class="hljs-number">1</span>].concat(<span class="hljs-keyword">this</span>.$rules[rule.include || rule]);
+                  <span class="hljs-keyword">if</span> (rule.noEscape) {
+                      args = args.filter(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(x)</span> </span>{
+                          <span class="hljs-keyword">return</span> !x.next;
+                      });
+                  }
+                  stateRules.splice.apply(stateRules, args);
+              } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (rule.token <span class="hljs-keyword">in</span> tokenMap) {
+                  rule.token = tokenMap[rule.token];
+              }
+          }
+      }
+  };</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Ace&#39;s Syntax Tokenizer.</p></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>tokenizing lines longer than this makes editor very slow</p></div></div><div class="code"><div class="wrapper">  <span class="hljs-keyword">var</span> MAX_TOKEN_COUNT = <span class="hljs-number">1000</span>;
+  <span class="hljs-keyword">var</span> Tokenizer = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(rules)</span> </span>{
+      <span class="hljs-keyword">this</span>.states = rules;
+
+      <span class="hljs-keyword">this</span>.regExps = {};
+      <span class="hljs-keyword">this</span>.matchMappings = {};
+      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> key <span class="hljs-keyword">in</span> <span class="hljs-keyword">this</span>.states) {
+          <span class="hljs-keyword">var</span> state = <span class="hljs-keyword">this</span>.states[key];
+          <span class="hljs-keyword">var</span> ruleRegExps = [];
+          <span class="hljs-keyword">var</span> matchTotal = <span class="hljs-number">0</span>;
+          <span class="hljs-keyword">var</span> mapping = <span class="hljs-keyword">this</span>.matchMappings[key] = {defaultToken: <span class="hljs-string">"text"</span>};
+          <span class="hljs-keyword">var</span> flag = <span class="hljs-string">"g"</span>;
+
+          <span class="hljs-keyword">var</span> splitterRurles = [];
+          <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; state.length; i++) {
+              <span class="hljs-keyword">var</span> rule = state[i];
+              <span class="hljs-keyword">if</span> (rule.defaultToken)
+                  mapping.defaultToken = rule.defaultToken;
+              <span class="hljs-keyword">if</span> (rule.caseInsensitive)
+                  flag = <span class="hljs-string">"gi"</span>;
+              <span class="hljs-keyword">if</span> (rule.regex == <span class="hljs-literal">null</span>)
+                  <span class="hljs-keyword">continue</span>;
+
+              <span class="hljs-keyword">if</span> (rule.regex <span class="hljs-keyword">instanceof</span> <span class="hljs-built_in">RegExp</span>)
+                  rule.regex = rule.regex.toString().slice(<span class="hljs-number">1</span>, -<span class="hljs-number">1</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Count number of matching groups. 2 extra groups from the full match
+And the catch-all on the end (used to force a match);</p></div></div><div class="code"><div class="wrapper">              <span class="hljs-keyword">var</span> adjustedregex = rule.regex;
+              <span class="hljs-keyword">var</span> matchcount = <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>(<span class="hljs-string">"(?:("</span> + adjustedregex + <span class="hljs-string">")|(.))"</span>).exec(<span class="hljs-string">"a"</span>).length - <span class="hljs-number">2</span>;
+              <span class="hljs-keyword">if</span> (<span class="hljs-built_in">Array</span>.isArray(rule.token)) {
+                  <span class="hljs-keyword">if</span> (rule.token.length == <span class="hljs-number">1</span> || matchcount == <span class="hljs-number">1</span>) {
+                      rule.token = rule.token[<span class="hljs-number">0</span>];
+                  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (matchcount - <span class="hljs-number">1</span> != rule.token.length) {
+                      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">"number of classes and regexp groups in '"</span> +
+                          rule.token + <span class="hljs-string">"'\n'"</span> + rule.regex +  <span class="hljs-string">"' doesn't match\n"</span>
+                          + (matchcount - <span class="hljs-number">1</span>) + <span class="hljs-string">"!="</span> + rule.token.length);
+                  } <span class="hljs-keyword">else</span> {
+                      rule.tokenArray = rule.token;
+                      rule.token = <span class="hljs-literal">null</span>;
+                      rule.onMatch = <span class="hljs-keyword">this</span>.$arrayTokens;
+                  }
+              } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> rule.token == <span class="hljs-string">"function"</span> &amp;&amp; !rule.onMatch) {
+                  <span class="hljs-keyword">if</span> (matchcount &gt; <span class="hljs-number">1</span>)
+                      rule.onMatch = <span class="hljs-keyword">this</span>.$applyToken;
+                  <span class="hljs-keyword">else</span>
+                      rule.onMatch = rule.token;
+              }
+
+              <span class="hljs-keyword">if</span> (matchcount &gt; <span class="hljs-number">1</span>) {
+                  <span class="hljs-keyword">if</span> (<span class="hljs-regexp">/\\\d/</span>.test(rule.regex)) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Replace any backreferences and offset appropriately.</p></div></div><div class="code"><div class="wrapper">                      adjustedregex = rule.regex.replace(<span class="hljs-regexp">/\\([0-9]+)/g</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(match, digit)</span> </span>{
+                          <span class="hljs-keyword">return</span> <span class="hljs-string">"\\"</span> + (<span class="hljs-built_in">parseInt</span>(digit, <span class="hljs-number">10</span>) + matchTotal + <span class="hljs-number">1</span>);
+                      });
+                  } <span class="hljs-keyword">else</span> {
+                      matchcount = <span class="hljs-number">1</span>;
+                      adjustedregex = <span class="hljs-keyword">this</span>.removeCapturingGroups(rule.regex);
+                  }
+                  <span class="hljs-keyword">if</span> (!rule.splitRegex &amp;&amp; <span class="hljs-keyword">typeof</span> rule.token != <span class="hljs-string">"string"</span>)
+                      splitterRurles.push(rule); <span class="hljs-comment">// flag will be known only at the very end</span>
+              }
+
+              mapping[matchTotal] = i;
+              matchTotal += matchcount;
+
+              ruleRegExps.push(adjustedregex);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>makes property access faster</p></div></div><div class="code"><div class="wrapper">              <span class="hljs-keyword">if</span> (!rule.onMatch)
+                  rule.onMatch = <span class="hljs-literal">null</span>;
+          }
+
+          splitterRurles.forEach(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(rule)</span> </span>{
+              rule.splitRegex = <span class="hljs-keyword">this</span>.createSplitterRegexp(rule.regex, flag);
+          }, <span class="hljs-keyword">this</span>);
+
+          <span class="hljs-keyword">this</span>.regExps[key] = <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>(<span class="hljs-string">"("</span> + ruleRegExps.join(<span class="hljs-string">")|("</span>) + <span class="hljs-string">")|($)"</span>, flag);
+      }
+  };
+
+  (<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      <span class="hljs-keyword">this</span>.$setMaxTokenCount = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(m)</span> </span>{
+          MAX_TOKEN_COUNT = m | <span class="hljs-number">0</span>;
+      };
+
+      <span class="hljs-keyword">this</span>.$applyToken = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(str)</span> </span>{
+          <span class="hljs-keyword">var</span> values = <span class="hljs-keyword">this</span>.splitRegex.exec(str).slice(<span class="hljs-number">1</span>);
+          <span class="hljs-keyword">var</span> types = <span class="hljs-keyword">this</span>.token.apply(<span class="hljs-keyword">this</span>, values);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>required for compatibility with old modes</p></div></div><div class="code"><div class="wrapper">          <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> types === <span class="hljs-string">"string"</span>)
+              <span class="hljs-keyword">return</span> [{type: types, value: str}];
+
+          <span class="hljs-keyword">var</span> tokens = [];
+          <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = types.length; i &lt; l; i++) {
+              <span class="hljs-keyword">if</span> (values[i])
+                  tokens[tokens.length] = {
+                      type: types[i],
+                      value: values[i]
+                  };
+          }
+          <span class="hljs-keyword">return</span> tokens;
+      },
+
+      <span class="hljs-keyword">this</span>.$arrayTokens = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(str)</span> </span>{
+          <span class="hljs-keyword">if</span> (!str)
+              <span class="hljs-keyword">return</span> [];
+          <span class="hljs-keyword">var</span> values = <span class="hljs-keyword">this</span>.splitRegex.exec(str);
+          <span class="hljs-keyword">if</span> (!values)
+              <span class="hljs-keyword">return</span> <span class="hljs-string">"text"</span>;
+          <span class="hljs-keyword">var</span> tokens = [];
+          <span class="hljs-keyword">var</span> types = <span class="hljs-keyword">this</span>.tokenArray;
+          <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>, l = types.length; i &lt; l; i++) {
+              <span class="hljs-keyword">if</span> (values[i + <span class="hljs-number">1</span>])
+                  tokens[tokens.length] = {
+                      type: types[i],
+                      value: values[i + <span class="hljs-number">1</span>]
+                  };
+          }
+          <span class="hljs-keyword">return</span> tokens;
+      };
+
+      <span class="hljs-keyword">this</span>.removeCapturingGroups = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(src)</span> </span>{
+          <span class="hljs-keyword">var</span> r = src.replace(
+              <span class="hljs-regexp">/\[(?:\\.|[^\]])*?\]|\\.|\(\?[:=!]|(\()/g</span>,
+              <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(x, y)</span> </span>{<span class="hljs-keyword">return</span> y ? <span class="hljs-string">"(?:"</span> : x;}
+          );
+          <span class="hljs-keyword">return</span> r;
+      };
+
+      <span class="hljs-keyword">this</span>.createSplitterRegexp = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(src, flag)</span> </span>{
+          <span class="hljs-keyword">if</span> (src.indexOf(<span class="hljs-string">"(?="</span>) != -<span class="hljs-number">1</span>) {
+              <span class="hljs-keyword">var</span> stack = <span class="hljs-number">0</span>;
+              <span class="hljs-keyword">var</span> inChClass = <span class="hljs-literal">false</span>;
+              <span class="hljs-keyword">var</span> lastCapture = {};
+              src.replace(<span class="hljs-regexp">/(\\.)|(\((?:\?[=!])?)|(\))|([\[\]])/g</span>, <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(
+                  m, esc, parenOpen, parenClose, square, index
+              )</span> </span>{
+                  <span class="hljs-keyword">if</span> (inChClass) {
+                      inChClass = square != <span class="hljs-string">"]"</span>;
+                  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (square) {
+                      inChClass = <span class="hljs-literal">true</span>;
+                  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (parenClose) {
+                      <span class="hljs-keyword">if</span> (stack == lastCapture.stack) {
+                          lastCapture.end = index+<span class="hljs-number">1</span>;
+                          lastCapture.stack = -<span class="hljs-number">1</span>;
+                      }
+                      stack--;
+                  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (parenOpen) {
+                      stack++;
+                      <span class="hljs-keyword">if</span> (parenOpen.length != <span class="hljs-number">1</span>) {
+                          lastCapture.stack = stack
+                          lastCapture.start = index;
+                      }
+                  }
+                  <span class="hljs-keyword">return</span> m;
+              });
+
+              <span class="hljs-keyword">if</span> (lastCapture.end != <span class="hljs-literal">null</span> &amp;&amp; <span class="hljs-regexp">/^\)*$/</span>.test(src.substr(lastCapture.end)))
+                  src = src.substring(<span class="hljs-number">0</span>, lastCapture.start) + src.substr(lastCapture.end);
+          }
+          <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>(src, (flag||<span class="hljs-string">""</span>).replace(<span class="hljs-string">"g"</span>, <span class="hljs-string">""</span>));
+      };</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p>Returns an object containing two properties: <code>tokens</code>, which contains all the tokens; and <code>state</code>, the current state.</p>
+<p><strong>Returns an Object</strong><br/>(*)</p></div></div><div class="code"><div class="wrapper">      <span class="hljs-keyword">this</span>.getLineTokens = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(line, startState)</span> </span>{
+          <span class="hljs-keyword">if</span> (startState &amp;&amp; <span class="hljs-keyword">typeof</span> startState != <span class="hljs-string">"string"</span>) {
+              <span class="hljs-keyword">var</span> stack = startState.slice(<span class="hljs-number">0</span>);
+              startState = stack[<span class="hljs-number">0</span>];
+          } <span class="hljs-keyword">else</span>
+              <span class="hljs-keyword">var</span> stack = [];
+
+          <span class="hljs-keyword">var</span> currentState = startState || <span class="hljs-string">"start"</span>;
+          <span class="hljs-keyword">var</span> state = <span class="hljs-keyword">this</span>.states[currentState];
+          <span class="hljs-keyword">if</span> (!state) {
+              currentState = <span class="hljs-string">"start"</span>;
+              state = <span class="hljs-keyword">this</span>.states[currentState];
+          }
+          <span class="hljs-keyword">var</span> mapping = <span class="hljs-keyword">this</span>.matchMappings[currentState];
+          <span class="hljs-keyword">var</span> re = <span class="hljs-keyword">this</span>.regExps[currentState];
+          re.lastIndex = <span class="hljs-number">0</span>;
+
+          <span class="hljs-keyword">var</span> match, tokens = [];
+          <span class="hljs-keyword">var</span> lastIndex = <span class="hljs-number">0</span>;
+
+          <span class="hljs-keyword">var</span> token = {type: <span class="hljs-literal">null</span>, value: <span class="hljs-string">""</span>};
+
+          <span class="hljs-keyword">while</span> (match = re.exec(line)) {
+              <span class="hljs-keyword">var</span> type = mapping.defaultToken;
+              <span class="hljs-keyword">var</span> rule = <span class="hljs-literal">null</span>;
+              <span class="hljs-keyword">var</span> value = match[<span class="hljs-number">0</span>];
+              <span class="hljs-keyword">var</span> index = re.lastIndex;
+
+              <span class="hljs-keyword">if</span> (index - value.length &gt; lastIndex) {
+                  <span class="hljs-keyword">var</span> skipped = line.substring(lastIndex, index - value.length);
+                  <span class="hljs-keyword">if</span> (token.type == type) {
+                      token.value += skipped;
+                  } <span class="hljs-keyword">else</span> {
+                      <span class="hljs-keyword">if</span> (token.type)
+                          tokens.push(token);
+                      token = {type: type, value: skipped};
+                  }
+              }
+
+              <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; match.length-<span class="hljs-number">2</span>; i++) {
+                  <span class="hljs-keyword">if</span> (match[i + <span class="hljs-number">1</span>] === <span class="hljs-literal">undefined</span>)
+                      <span class="hljs-keyword">continue</span>;
+
+                  rule = state[mapping[i]];
+
+                  <span class="hljs-keyword">if</span> (rule.onMatch)
+                      type = rule.onMatch(value, currentState, stack);
+                  <span class="hljs-keyword">else</span>
+                      type = rule.token;
+
+                  <span class="hljs-keyword">if</span> (rule.next) {
+                      <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> rule.next == <span class="hljs-string">"string"</span>)
+                          currentState = rule.next;
+                      <span class="hljs-keyword">else</span>
+                          currentState = rule.next(currentState, stack);
+
+                      state = <span class="hljs-keyword">this</span>.states[currentState];
+                      <span class="hljs-keyword">if</span> (!state) {
+                          <span class="hljs-built_in">window</span>.console &amp;&amp; <span class="hljs-built_in">console</span>.error &amp;&amp; <span class="hljs-built_in">console</span>.error(currentState, <span class="hljs-string">"doesn't exist"</span>);
+                          currentState = <span class="hljs-string">"start"</span>;
+                          state = <span class="hljs-keyword">this</span>.states[currentState];
+                      }
+                      mapping = <span class="hljs-keyword">this</span>.matchMappings[currentState];
+                      lastIndex = index;
+                      re = <span class="hljs-keyword">this</span>.regExps[currentState];
+                      re.lastIndex = index;
+                  }
+                  <span class="hljs-keyword">break</span>;
+              }
+
+              <span class="hljs-keyword">if</span> (value) {
+                  <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> type == <span class="hljs-string">"string"</span>) {
+                      <span class="hljs-keyword">if</span> ((!rule || rule.merge !== <span class="hljs-literal">false</span>) &amp;&amp; token.type === type) {
+                          token.value += value;
+                      } <span class="hljs-keyword">else</span> {
+                          <span class="hljs-keyword">if</span> (token.type)
+                              tokens.push(token);
+                          token = {type: type, value: value};
+                      }
+                  } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (type) {
+                      <span class="hljs-keyword">if</span> (token.type)
+                          tokens.push(token);
+                      token = {type: <span class="hljs-literal">null</span>, value: <span class="hljs-string">""</span>};
+                      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; type.length; i++)
+                          tokens.push(type[i]);
+                  }
+              }
+
+              <span class="hljs-keyword">if</span> (lastIndex == line.length)
+                  <span class="hljs-keyword">break</span>;
+
+              lastIndex = index;
+
+              <span class="hljs-keyword">if</span> (tokens.length &gt; MAX_TOKEN_COUNT) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>chrome doens&#39;t show contents of text nodes with very long text</p></div></div><div class="code"><div class="wrapper">                  <span class="hljs-keyword">while</span> (lastIndex &lt; line.length) {
+                      <span class="hljs-keyword">if</span> (token.type)
+                          tokens.push(token);
+                      token = {
+                          value: line.substring(lastIndex, lastIndex += <span class="hljs-number">2000</span>),
+                          type: <span class="hljs-string">"overflow"</span>
+                      };
+                  }
+                  currentState = <span class="hljs-string">"start"</span>;
+                  stack = [];
+                  <span class="hljs-keyword">break</span>;
+              }
+          }
+
+          <span class="hljs-keyword">if</span> (token.type)
+              tokens.push(token);
+
+          <span class="hljs-keyword">if</span> (stack.length &gt; <span class="hljs-number">1</span>) {
+              <span class="hljs-keyword">if</span> (stack[<span class="hljs-number">0</span>] !== currentState)
+                  stack.unshift(currentState);
+          }
+          <span class="hljs-keyword">return</span> {
+              tokens : tokens,
+              state : stack.length ? stack : currentState
+          };
+      };
+
+  }).call(Tokenizer.prototype);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Token conversion.
+See <a href="https://github.com/ajaxorg/ace/wiki/Creating-or-Extending-an-Edit-Mode#common-tokens">https://github.com/ajaxorg/ace/wiki/Creating-or-Extending-an-Edit-Mode#common-tokens</a>
+This is not an exact match nor the best match that can be made.</p></div></div><div class="code"><div class="wrapper">  <span class="hljs-keyword">var</span> tokenFromAceToken = {
+    empty: <span class="hljs-literal">null</span>,
+    text: <span class="hljs-literal">null</span>,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Keyword</p></div></div><div class="code"><div class="wrapper">    keyword: <span class="hljs-string">'keyword'</span>,
+      control: <span class="hljs-string">'keyword'</span>,
+      operator: <span class="hljs-string">'operator'</span>,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Constants</p></div></div><div class="code"><div class="wrapper">    constant: <span class="hljs-string">'atom'</span>,
+      numeric: <span class="hljs-string">'number'</span>,
+      character: <span class="hljs-string">'atom'</span>,
+        <span class="hljs-built_in">escape</span>: <span class="hljs-string">'atom'</span>,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Variables</p></div></div><div class="code"><div class="wrapper">    variable: <span class="hljs-string">'variable'</span>,
+    parameter: <span class="hljs-string">'variable-3'</span>,
+    language: <span class="hljs-string">'variable-2'</span>,  <span class="hljs-comment">// Python's `self` uses that.</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Comments</p></div></div><div class="code"><div class="wrapper">    comment: <span class="hljs-string">'comment'</span>,
+      line: <span class="hljs-string">'comment'</span>,
+        <span class="hljs-string">'double-slash'</span>: <span class="hljs-string">'comment'</span>,
+        <span class="hljs-string">'double-dash'</span>: <span class="hljs-string">'comment'</span>,
+        <span class="hljs-string">'number-sign'</span>: <span class="hljs-string">'comment'</span>,
+        percentage: <span class="hljs-string">'comment'</span>,
+      block: <span class="hljs-string">'comment'</span>,
+        documentation: <span class="hljs-string">'comment'</span>,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>String</p></div></div><div class="code"><div class="wrapper">    string: <span class="hljs-string">'string'</span>,
+      quoted: <span class="hljs-string">'string'</span>,
+        single: <span class="hljs-string">'string'</span>,
+        double: <span class="hljs-string">'string'</span>,
+        triple: <span class="hljs-string">'string'</span>,
+      unquoted: <span class="hljs-string">'string'</span>,
+      interpolated: <span class="hljs-string">'string'</span>,
+      regexp: <span class="hljs-string">'string-2'</span>,
+
+    meta: <span class="hljs-string">'meta'</span>,
+    literal: <span class="hljs-string">'qualifier'</span>,
+    support: <span class="hljs-string">'builtin'</span>,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Markup</p></div></div><div class="code"><div class="wrapper">    markup: <span class="hljs-string">'tag'</span>,
+    underline: <span class="hljs-string">'link'</span>,
+    link: <span class="hljs-string">'link'</span>,
+    bold: <span class="hljs-string">'strong'</span>,
+    heading: <span class="hljs-string">'header'</span>,
+    italic: <span class="hljs-string">'em'</span>,
+    list: <span class="hljs-string">'variable-2'</span>,
+    numbered: <span class="hljs-string">'variable-2'</span>,
+    unnumbered: <span class="hljs-string">'variable-2'</span>,
+    quote: <span class="hljs-string">'quote'</span>,
+    raw: <span class="hljs-string">'variable-2'</span>,  <span class="hljs-comment">// Markdown's raw block uses that.</span></div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Invalid</p></div></div><div class="code"><div class="wrapper">    invalid: <span class="hljs-string">'error'</span>,
+    illegal: <span class="hljs-string">'invalidchar'</span>,
+    deprecated: <span class="hljs-string">'error'</span>
+  };</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Takes a list of Ace tokens, returns a (string) CodeMirror token.</p></div></div><div class="code"><div class="wrapper">  <span class="hljs-keyword">var</span> cmTokenFromAceTokens = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(tokens)</span> </span>{
+    <span class="hljs-keyword">var</span> token = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> i = <span class="hljs-number">0</span>; i &lt; tokens.length; i++) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Find the most specific token.</p></div></div><div class="code"><div class="wrapper">      <span class="hljs-keyword">if</span> (tokenFromAceToken[tokens[i]] !== <span class="hljs-literal">undefined</span>) {
+        token = tokenFromAceToken[tokens[i]];
+      }
+    }
+    <span class="hljs-keyword">return</span> token;
+  };</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Consume a token from plannedTokens.</p></div></div><div class="code"><div class="wrapper">  <span class="hljs-keyword">var</span> consumeToken = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(stream, state)</span> </span>{
+    <span class="hljs-keyword">var</span> plannedToken = state.plannedTokens.shift();
+    <span class="hljs-keyword">if</span> (plannedToken === <span class="hljs-literal">undefined</span>) {
+      <span class="hljs-keyword">return</span> <span class="hljs-literal">null</span>;
+    }
+    stream.match(plannedToken.value);
+    <span class="hljs-keyword">var</span> tokens = plannedToken.type.split(<span class="hljs-string">'.'</span>);
+    <span class="hljs-keyword">return</span> cmTokenFromAceTokens(tokens);
+  };
+
+  <span class="hljs-keyword">var</span> matchToken = <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(stream, state)</span> </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Anormal start: we already have planned tokens to consume.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (state.plannedTokens.length &gt; <span class="hljs-number">0</span>) {
+      <span class="hljs-keyword">return</span> consumeToken(stream, state);
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Normal start.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">var</span> currentState = state.current;
+    <span class="hljs-keyword">var</span> currentLine = stream.match(<span class="hljs-regexp">/.*$/</span>, <span class="hljs-literal">false</span>)[<span class="hljs-number">0</span>];
+    <span class="hljs-keyword">var</span> tokenized = tokenizer.getLineTokens(currentLine, currentState);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>We got a {tokens, state} object.
+Each token is a {value, type} object.</p></div></div><div class="code"><div class="wrapper">    state.plannedTokens = tokenized.tokens;
+    state.current = tokenized.state;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Consume a token.</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">return</span> consumeToken(stream, state);
+  }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Initialize all state.</p></div></div><div class="code"><div class="wrapper">  <span class="hljs-keyword">var</span> aceHighlightRules = <span class="hljs-keyword">new</span> HighlightRules();
+  <span class="hljs-keyword">var</span> tokenizer = <span class="hljs-keyword">new</span> Tokenizer(aceHighlightRules.$rules);
+
+  <span class="hljs-keyword">return</span> {
+    startState: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      <span class="hljs-keyword">return</span> {
+        current: <span class="hljs-string">'start'</span>,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>List of {value, type}, with type being an Ace token string.</p></div></div><div class="code"><div class="wrapper">        plannedTokens: []
+      };
+    },
+    blankLine: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(state)</span> </span>{ matchToken(<span class="hljs-string">''</span>, state); },
+    token: matchToken
+  };
+});
+
+CodeMirror.defineMIME(<span class="hljs-string">"text/x-asciidoc"</span>, <span class="hljs-string">"asciidoc"</span>);
+
+});</div></div></div></div></body></html>

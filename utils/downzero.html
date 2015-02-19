@@ -1,0 +1,105 @@
+<!DOCTYPE html><html lang="en"><head><title>utils/downzero</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="utils/downzero"><meta name="groc-project-path" content="src/hubpress/scripts/utils/downzero.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/utils/downzero.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><p>Functions to imitate the behavior of Downsize@0.0.5 with &#39;words: &quot;0&quot;&#39; (heavily based on Downsize)</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> stack, tagName, tagBuffer, truncatedText, parseState, pointer,
+    states = {unitialized: <span class="hljs-number">0</span>, tag_commenced: <span class="hljs-number">1</span>, tag_string: -<span class="hljs-number">1</span>, tag_string_single: -<span class="hljs-number">2</span>, comment: -<span class="hljs-number">3</span>},
+    voidElements = [<span class="hljs-string">'area'</span>, <span class="hljs-string">'base'</span>, <span class="hljs-string">'br'</span>, <span class="hljs-string">'col'</span>, <span class="hljs-string">'command'</span>, <span class="hljs-string">'embed'</span>, <span class="hljs-string">'hr'</span>, <span class="hljs-string">'img'</span>, <span class="hljs-string">'input'</span>,
+    <span class="hljs-string">'keygen'</span>, <span class="hljs-string">'link'</span>, <span class="hljs-string">'meta'</span>, <span class="hljs-string">'param'</span>, <span class="hljs-string">'source'</span>, <span class="hljs-string">'track'</span>, <span class="hljs-string">'wbr'</span>];
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getTagName</span><span class="hljs-params">(tag)</span> </span>{
+    <span class="hljs-keyword">var</span> tagName = (tag || <span class="hljs-string">''</span>).match(<span class="hljs-regexp">/&lt;\/*([a-z0-9\:\-\_]+)/i</span>);
+    <span class="hljs-keyword">return</span> tagName ? tagName[<span class="hljs-number">1</span>] : <span class="hljs-literal">null</span>;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">closeTag</span><span class="hljs-params">(openingTag)</span> </span>{
+    <span class="hljs-keyword">var</span> tagName = (getTagName(openingTag)) ? <span class="hljs-string">'&lt;/'</span> + getTagName(openingTag) + <span class="hljs-string">'&gt;'</span> : <span class="hljs-string">''</span>;
+    <span class="hljs-keyword">return</span> tagName;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">downzero</span><span class="hljs-params">(text)</span> </span>{
+    stack = [];
+    tagName = <span class="hljs-string">''</span>;
+    tagBuffer = <span class="hljs-string">''</span>;
+    truncatedText = <span class="hljs-string">''</span>;
+    parseState = <span class="hljs-number">0</span>;
+    pointer = <span class="hljs-number">0</span>;
+
+    <span class="hljs-keyword">for</span> (; pointer &lt; text.length; pointer += <span class="hljs-number">1</span>) {
+        <span class="hljs-keyword">if</span> (parseState !== states.unitialized) {
+            tagBuffer += text[pointer];
+        }
+
+        <span class="hljs-keyword">switch</span> (text[pointer]) {
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'&lt;'</span>:
+                <span class="hljs-keyword">if</span> (parseState === states.unitialized &amp;&amp; text[pointer + <span class="hljs-number">1</span>].match(<span class="hljs-regexp">/[a-z0-9\-\_\/\!]/</span>)) {
+                    parseState = states.tag_commenced;
+                    tagBuffer += text[pointer];
+                }
+
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'!'</span>:
+                <span class="hljs-keyword">if</span> (parseState === states.tag_commenced &amp;&amp; text[pointer - <span class="hljs-number">1</span>] === <span class="hljs-string">'&lt;'</span>) {
+                    parseState = states.comment;
+                }
+
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'\"'</span>:
+                <span class="hljs-keyword">if</span> (parseState === states.tag_string) {
+                    parseState = states.tag_commenced;
+                } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (parseState === states.tag_string_single) {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if double quote is found in a single quote string, ignore it and let the string finish</p></div></div><div class="code"><div class="wrapper">                    <span class="hljs-keyword">break</span>;
+                } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (parseState !== states.unitialized) {
+                    parseState = states.tag_string;
+                }
+
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'\''</span>:
+                <span class="hljs-keyword">if</span> (parseState === states.tag_string_single) {
+                    parseState = states.tag_commenced;
+                } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (parseState === states.tag_string) {
+                    <span class="hljs-keyword">break</span>;
+                } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (parseState !== states.unitialized) {
+                    parseState = states.tag_string_single;
+                }
+
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'&gt;'</span>:
+                <span class="hljs-keyword">if</span> (parseState === states.tag_commenced) {
+                    parseState = states.unitialized;
+                    truncatedText += tagBuffer;
+                    tagName = getTagName(tagBuffer);
+
+                    <span class="hljs-keyword">if</span> (tagBuffer.match(<span class="hljs-regexp">/&lt;\s*\//</span>) &amp;&amp; getTagName(stack[stack.length - <span class="hljs-number">1</span>]) === tagName) {
+                        stack.pop();
+                    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (voidElements.indexOf(tagName) &lt; <span class="hljs-number">0</span> &amp;&amp; !tagBuffer.match(<span class="hljs-regexp">/\/\s*&gt;$/</span>)) {
+                        stack.push(tagBuffer);
+                    }
+                    tagBuffer = <span class="hljs-string">''</span>;
+
+                    <span class="hljs-keyword">continue</span>;
+                }
+
+                <span class="hljs-keyword">if</span> (parseState === states.comment &amp;&amp; text.substring(pointer - <span class="hljs-number">2</span>, pointer) === <span class="hljs-string">'--'</span>) {
+                    parseState = states.unitialized;
+                    truncatedText += tagBuffer;
+                    tagBuffer = <span class="hljs-string">''</span>;
+
+                    <span class="hljs-keyword">continue</span>;
+                }
+
+                <span class="hljs-keyword">break</span>;
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'-'</span>:
+                <span class="hljs-keyword">break</span>;
+        }
+
+        <span class="hljs-keyword">if</span> (!parseState) {
+            <span class="hljs-keyword">break</span>;
+        }
+    }
+
+    truncatedText += tagBuffer;
+
+    <span class="hljs-keyword">while</span> (stack.length) {
+        truncatedText += closeTag(stack.pop());
+    }
+
+    <span class="hljs-keyword">return</span> truncatedText;
+}
+
+<span class="hljs-built_in">module</span>.exports = downzero;</div></div></div></div></body></html>

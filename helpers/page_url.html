@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/page_url</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/page_url"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/page_url.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/page_url.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h3 id="page-url-helper">Page URL Helper</h3>
+<p><em>Usage example:</em>
+<code>{{page_url 2}}</code></p>
+<p>Returns the URL for the page specified in the current object
+context.</p>
+<p>We use the name page_url to match the helper for consistency:
+jscs:disable requireCamelCaseOrUpperCaseIdentifiers</p></div></div><div class="code"><div class="wrapper">import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+<span class="hljs-keyword">var</span>    page_url,
+    pageUrl;
+
+page_url = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(context, block)</span> </span>{
+    <span class="hljs-comment">/*jshint unused:false*/</span>
+    <span class="hljs-keyword">var</span> url = SettingsStore.getSiteUrl();
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.tagSlug !== <span class="hljs-literal">undefined</span>) {
+        url += <span class="hljs-string">'/tag/'</span> + <span class="hljs-keyword">this</span>.tagSlug;
+    }
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.authorSlug !== <span class="hljs-literal">undefined</span>) {
+        url += <span class="hljs-string">'/author/'</span> + <span class="hljs-keyword">this</span>.authorSlug;
+    }
+
+    <span class="hljs-keyword">if</span> (context &gt; <span class="hljs-number">1</span>) {
+        url += <span class="hljs-string">'/page/'</span> + context;
+    }
+
+    url += <span class="hljs-string">'/'</span>;
+
+    <span class="hljs-keyword">return</span> url;
+};</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h3 id="page-url-helper-deprecated">Page URL Helper: DEPRECATED</h3>
+<p><em>Usage example:</em>
+<code>{{pageUrl 2}}</code></p>
+<p>Returns the URL for the page specified in the current object
+context. This helper is deprecated and will be removed in future versions.</p></div></div><div class="code"><div class="wrapper">pageUrl = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(context, block)</span> </span>{
+    <span class="hljs-built_in">console</span>.warn(<span class="hljs-string">'Warning: pageUrl is deprecated, please use page_url instead\n'</span> +
+        <span class="hljs-string">'The helper pageUrl has been replaced with page_url in Ghost 0.4.2, and will be removed entirely in Ghost 0.6\n'</span> +
+        <span class="hljs-string">'In your theme\'s pagination.hbs file, pageUrl should be renamed to page_url'</span>);
+
+    <span class="hljs-comment">/*jshint unused:false*/</span>
+    <span class="hljs-keyword">var</span> self = <span class="hljs-keyword">this</span>;
+
+    <span class="hljs-keyword">return</span> page_url.call(self, context, block);
+};
+
+<span class="hljs-built_in">module</span>.exports = page_url;
+<span class="hljs-built_in">module</span>.exports.deprecated = pageUrl;</div></div></div></div></body></html>

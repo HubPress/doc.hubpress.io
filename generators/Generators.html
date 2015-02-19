@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="en"><head><title>generators/Generators</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="generators/Generators"><meta name="groc-project-path" content="src/hubpress/scripts/generators/Generators.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/generators/Generators.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> Q = <span class="hljs-built_in">require</span>(<span class="hljs-string">'q'</span>);
+<span class="hljs-keyword">const</span> _ = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Generator</p></div></div><div class="code"><div class="wrapper">import PaginationGenerator from <span class="hljs-string">'./PaginationGenerator'</span>;
+import PostGenerator from <span class="hljs-string">'./PostGenerator'</span>;
+import PostsGenerator from <span class="hljs-string">'./PostsGenerator'</span>;
+
+<span class="hljs-keyword">class</span> Generators {
+
+  constructor() {
+    <span class="hljs-keyword">this</span>.generators = [];
+  }
+
+  register(generator) {
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Generators - Register generator'</span>, generator.constructor.name);
+    <span class="hljs-keyword">this</span>.generators.push(generator);
+  }
+
+  generate(params) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'Generators - generate'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Generators - generate'</span>, params);
+    <span class="hljs-keyword">let</span> defer = Q.defer();
+    <span class="hljs-keyword">let</span> buildDefer = Q.defer();
+    <span class="hljs-keyword">let</span> promise = buildDefer.promise;
+    <span class="hljs-keyword">let</span> elementsToPublish = [];
+
+    <span class="hljs-keyword">this</span>.generators.forEach((generator) =&gt; {
+      <span class="hljs-keyword">if</span> (!params.generators || _.contains(params.generators, generator.name)) {
+        promise = promise.then((values)=&gt; {
+          <span class="hljs-keyword">if</span> (values) {
+            elementsToPublish = elementsToPublish.concat(values);
+          }
+          <span class="hljs-keyword">return</span> generator.generate(params);
+        });
+      }
+    });
+
+    promise.then((values) =&gt; {
+      <span class="hljs-keyword">if</span> (values) {
+        elementsToPublish = elementsToPublish.concat(values);
+      }
+
+      defer.resolve( _.compact(elementsToPublish));
+    })
+    .then(() =&gt; {
+      defer.resolve();
+    })
+    .catch((err) =&gt; {
+      defer.reject(err);
+    })
+
+    buildDefer.resolve([]);
+    <span class="hljs-keyword">return</span> defer.promise;
+  }
+}
+
+<span class="hljs-keyword">const</span> generators = <span class="hljs-keyword">new</span> Generators();
+
+
+<span class="hljs-comment">//generators.register(tagsCloudGenerator);</span>
+generators.register(PostGenerator);
+generators.register(PostsGenerator);
+generators.register(PaginationGenerator);
+
+export <span class="hljs-keyword">default</span> generators;</div></div></div></div></body></html>

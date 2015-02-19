@@ -1,0 +1,50 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/has</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/has"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/has.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/has.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="has-helper">Has Helper</h1>
+<p>Usage: <code>{{#has tag=&quot;video, music&quot;}}</code>, <code>{{#has author=&quot;sam, pat&quot;}}</code></p>
+<p>Checks if a post has a particular property</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> _               = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>),
+    has;
+
+has = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(options)</span> </span>{
+    options = options || {};
+    options.hash = options.hash || {};
+
+    <span class="hljs-keyword">var</span> tags = _.pluck(<span class="hljs-keyword">this</span>.tags, <span class="hljs-string">'name'</span>),
+        author = <span class="hljs-keyword">this</span>.author ? <span class="hljs-keyword">this</span>.author.name : <span class="hljs-literal">null</span>,
+        tagList = options.hash.tag || <span class="hljs-literal">false</span>,
+        authorList = options.hash.author || <span class="hljs-literal">false</span>,
+        tagsOk,
+        authorOk;
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">evaluateTagList</span><span class="hljs-params">(expr, tags)</span> </span>{
+        <span class="hljs-keyword">return</span> expr.split(<span class="hljs-string">','</span>).map(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(v)</span> </span>{
+            <span class="hljs-keyword">return</span> v.trim();
+        }).reduce(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(p, c)</span> </span>{
+            <span class="hljs-keyword">return</span> p || (_.findIndex(tags, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(item)</span> </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Escape regex special characters</p></div></div><div class="code"><div class="wrapper">                item = item.replace(<span class="hljs-regexp">/[\-\/\\\^$*+?.()|\[\]{}]/g</span>, <span class="hljs-string">'\\$&amp;'</span>);
+                item = <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>(<span class="hljs-string">'^'</span> + item + <span class="hljs-string">'$'</span>, <span class="hljs-string">'i'</span>);
+                <span class="hljs-keyword">return</span> item.test(c);
+            }) !== -<span class="hljs-number">1</span>);
+        }, <span class="hljs-literal">false</span>);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">evaluateAuthorList</span><span class="hljs-params">(expr, author)</span> </span>{
+        <span class="hljs-keyword">var</span> authorList =  expr.split(<span class="hljs-string">','</span>).map(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(v)</span> </span>{
+            <span class="hljs-keyword">return</span> v.trim().toLocaleLowerCase();
+        });
+
+        <span class="hljs-keyword">return</span> _.contains(authorList, author.toLocaleLowerCase());
+    }
+
+    <span class="hljs-keyword">if</span> (!tagList &amp;&amp; !authorList) {
+        <span class="hljs-built_in">console</span>.warn(<span class="hljs-string">'Invalid or no attribute given to has helper'</span>);
+        <span class="hljs-keyword">return</span>;
+    }
+
+    tagsOk = tagList &amp;&amp; evaluateTagList(tagList, tags) || <span class="hljs-literal">false</span>;
+    authorOk = authorList &amp;&amp; evaluateAuthorList(authorList, author) || <span class="hljs-literal">false</span>;
+
+    <span class="hljs-keyword">if</span> (tagsOk || authorOk) {
+        <span class="hljs-keyword">return</span> options.fn(<span class="hljs-keyword">this</span>);
+    }
+    <span class="hljs-keyword">return</span> options.inverse(<span class="hljs-keyword">this</span>);
+};
+
+<span class="hljs-built_in">module</span>.exports = has;</div></div></div></div></body></html>

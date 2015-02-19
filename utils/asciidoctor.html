@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="en"><head><title>utils/asciidoctor</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="utils/asciidoctor"><meta name="groc-project-path" content="src/hubpress/scripts/utils/asciidoctor.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/utils/asciidoctor.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">let</span> asciidoctor = <span class="hljs-built_in">require</span>(<span class="hljs-string">'asciidoctor.js'</span>)();
+<span class="hljs-keyword">let</span> opal = asciidoctor.Opal;
+<span class="hljs-keyword">let</span> processor = asciidoctor.Asciidoctor();
+
+<span class="hljs-keyword">let</span> options = opal.hash2(
+  [<span class="hljs-string">'safe'</span>, <span class="hljs-string">'attributes'</span>],
+{safe: <span class="hljs-string">'unsafe'</span>, attributes: [<span class="hljs-string">'showtitle!'</span>,<span class="hljs-string">'imagesdir=/images'</span>, <span class="hljs-string">'icons=font'</span>]});
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">splitMore</span><span class="hljs-params">(asciidocContent)</span> </span>{
+  <span class="hljs-keyword">let</span> parts = asciidocContent.split(<span class="hljs-string">'pass::[more]'</span>);
+  <span class="hljs-keyword">return</span> {
+    excerpt: parts[<span class="hljs-number">0</span>],
+    full: parts.join(<span class="hljs-string">''</span>)
+  }
+}
+
+<span class="hljs-built_in">module</span>.exports = {
+  convert: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(asciidocContent)</span> </span>{
+    <span class="hljs-keyword">let</span> parts = splitMore(asciidocContent);
+    <span class="hljs-keyword">let</span> excerpt = processor.$load(parts.excerpt, options);
+    <span class="hljs-keyword">let</span> doc = processor.$load(parts.full, options);
+    <span class="hljs-keyword">let</span> value = {
+      attributes: doc.attributes,
+      excerpt: excerpt.$convert(),
+      html: doc.$convert()
+    }
+    <span class="hljs-keyword">return</span> value;
+  }
+}</div></div></div></div></body></html>

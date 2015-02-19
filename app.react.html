@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="en"><head><title>app.react</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content=""><meta name="groc-document-path" content="app.react"><meta name="groc-project-path" content="src/hubpress/scripts/app.react.js"><link rel="stylesheet" type="text/css" media="all" href="assets/style.css"><script type="text/javascript" src="assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/app.react.js</div></div><div id="document"><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'> jsx React.DOM </span></p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">let</span> React = <span class="hljs-built_in">window</span>.React = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react'</span>);
+<span class="hljs-keyword">let</span> Router = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react-router'</span>);
+<span class="hljs-keyword">let</span> { Route, DefaultRoute, RouteHandler, Link } = Router;
+<span class="hljs-keyword">let</span> mountNode = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"hubpress"</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Components</p></div></div><div class="code"><div class="wrapper">import Hubpress from <span class="hljs-string">'./components/Hubpress.react.js'</span>;
+import HpWebApiUtils from <span class="hljs-string">'./utils/HpWebApiUtils.js'</span>;
+<span class="hljs-keyword">let</span> Login = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./components/Login.react'</span>);
+<span class="hljs-keyword">let</span> Posts = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./components/Posts.react'</span>);
+<span class="hljs-keyword">let</span> Post = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./components/Post.react'</span>);
+<span class="hljs-keyword">let</span> Settings = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./components/Settings.react'</span>);
+
+<span class="hljs-keyword">let</span> injectTapEventPlugin = <span class="hljs-built_in">require</span>(<span class="hljs-string">"react-tap-event-plugin"</span>);
+injectTapEventPlugin();
+
+HpWebApiUtils.getConfig();
+
+<span class="hljs-keyword">let</span> routes = (
+  <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-title">Route</span> <span class="hljs-attribute">handler</span>=<span class="hljs-value">{Hubpress}</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">DefaultRoute</span> <span class="hljs-attribute">handler</span>=<span class="hljs-value">{Posts}</span>/&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Route</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"login"</span> <span class="hljs-attribute">handler</span>=<span class="hljs-value">{Login}</span>/&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Route</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"posts"</span> <span class="hljs-attribute">path</span>=<span class="hljs-value">"/posts"</span> <span class="hljs-attribute">handler</span>=<span class="hljs-value">{Posts}</span> /&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Route</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"post"</span> <span class="hljs-attribute">path</span>=<span class="hljs-value">"/posts/:postId"</span> <span class="hljs-attribute">handler</span>=<span class="hljs-value">{Post}</span> /&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-title">Route</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"settings"</span> <span class="hljs-attribute">path</span>=<span class="hljs-value">"/settings"</span> <span class="hljs-attribute">handler</span>=<span class="hljs-value">{Settings}</span> /&gt;</span>
+  <span class="hljs-tag">&lt;/<span class="hljs-title">Route</span>&gt;</span>
+);
+
+Router.run(routes, (Handler) =&gt; {
+  React.render(<span class="hljs-tag">&lt;<span class="hljs-title">Handler</span>/&gt;</span>, mountNode);
+});
+</span></div></div></div></div></body></html>

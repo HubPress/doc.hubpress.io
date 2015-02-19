@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang="en"><head><title>stores/AppStore</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="stores/AppStore"><meta name="groc-project-path" content="src/hubpress/scripts/stores/AppStore.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/stores/AppStore.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">import HpConstants from <span class="hljs-string">'../constants/HpConstants'</span>;
+import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+import PostsStore from <span class="hljs-string">'./PostsStore'</span>;
+import ThemeStore from <span class="hljs-string">'./ThemeStore'</span>;
+<span class="hljs-keyword">const</span> EventEmitter = <span class="hljs-built_in">require</span>(<span class="hljs-string">'events'</span>).EventEmitter;
+<span class="hljs-keyword">const</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'moment'</span>);
+<span class="hljs-keyword">const</span> HpDispatcher = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../dispatchers/HpDispatcher'</span>);
+<span class="hljs-keyword">const</span> helpers = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../helpers'</span>);
+
+<span class="hljs-keyword">const</span> ActionTypes = HpConstants.ActionTypes;
+<span class="hljs-keyword">const</span> AppStates = HpConstants.AppStates;
+
+<span class="hljs-keyword">const</span> CHANGE_EVENT = <span class="hljs-string">'change'</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dispatcher</span><span class="hljs-params">(payload)</span> </span>{
+  <span class="hljs-keyword">var</span> action = payload.action;
+  <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'AppStores - dispatcher'</span>);
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'AppStores - dispatcher'</span>, action);
+
+  <span class="hljs-keyword">switch</span>(action.type) {
+    <span class="hljs-keyword">case</span> ActionTypes.RECEIVE_INIT:
+      HpDispatcher.waitFor([
+        SettingsStore.dispatcherToken,
+        ThemeStore.dispatcherToken
+      ]);
+      helpers.loadCoreHelpers();
+      <span class="hljs-keyword">this</span>.markAsInitialize();
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.START_SYNCHRONIZE:
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.FINISH_SYNCHRONIZE:
+      HpDispatcher.waitFor([
+        PostsStore.dispatcherToken
+        ]);
+      <span class="hljs-keyword">this</span>.message = {
+        type: <span class="hljs-string">'success'</span>,
+        title: <span class="hljs-string">'Synchronization'</span>,
+        content: <span class="hljs-string">'The synchronization is ended'</span>
+      };
+      localStorage.setItem(<span class="hljs-string">'hp-synchronization'</span>, moment().format());
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">default</span>:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>nothing</p></div></div><div class="code"><div class="wrapper">  }
+}
+
+<span class="hljs-keyword">class</span> AppStore extends EventEmitter {
+  constructor(){
+    <span class="hljs-keyword">this</span>.state = AppStates.INIT;
+    <span class="hljs-keyword">this</span>.dispatcherToken = HpDispatcher.register(dispatcher.bind(<span class="hljs-keyword">this</span>));
+    <span class="hljs-keyword">this</span>.message = <span class="hljs-literal">null</span>;
+  }
+
+  markAsInitialize() {
+    <span class="hljs-keyword">this</span>.state = AppStates.READY;
+  }
+
+  lastSynchronization() {
+    <span class="hljs-keyword">return</span> localStorage.getItem(<span class="hljs-string">'hp-synchronization'</span>);
+  }
+
+  isInitialize() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.state === AppStates.READY;
+  }
+
+  emitChange() {
+    <span class="hljs-keyword">this</span>.emit(CHANGE_EVENT);
+  }
+
+  addChangeListener(callback) {
+    <span class="hljs-keyword">this</span>.on(CHANGE_EVENT, callback);
+  }
+
+  removeChangeListener(callback) {
+    <span class="hljs-keyword">this</span>.removeListener(CHANGE_EVENT, callback);
+  }
+
+}
+
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> AppStore();</div></div></div></div></body></html>

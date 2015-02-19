@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><title>components/AsciidocRender.react</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="components/AsciidocRender.react"><meta name="groc-project-path" content="src/hubpress/scripts/components/AsciidocRender.react.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/components/AsciidocRender.react.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> React = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react'</span>);
+<span class="hljs-keyword">const</span> asciidoctor = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../utils/asciidoctor'</span>);
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">convertContent</span><span class="hljs-params">(content)</span> </span>{
+  <span class="hljs-keyword">return</span> asciidoctor.convert(content);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">applyScript</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">let</span> element = <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">"asciidoc-render"</span>);
+  <span class="hljs-keyword">let</span> scripts = element.getElementsByTagName(<span class="hljs-string">"script"</span>);
+  <span class="hljs-keyword">let</span> addedScripts = [];
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>; i &lt; scripts.length; i++) {
+    <span class="hljs-keyword">if</span> (scripts[i].src != <span class="hljs-string">""</span> &amp;&amp; addedScripts.indexOf(scripts[i].src) === -<span class="hljs-number">1</span>) {
+      <span class="hljs-keyword">let</span> tag = <span class="hljs-built_in">document</span>.createElement(<span class="hljs-string">"script"</span>);
+      tag.src = scripts[i].src;
+      addedScripts.push(tag.src)
+      <span class="hljs-built_in">document</span>.getElementsByTagName(<span class="hljs-string">"head"</span>)[<span class="hljs-number">0</span>].appendChild(tag);
+    }
+    <span class="hljs-keyword">else</span> {
+      <span class="hljs-built_in">eval</span>(scripts[i].innerHTML);
+    }
+  }
+
+  <span class="hljs-keyword">if</span> (<span class="hljs-built_in">window</span>.instgrm)
+    <span class="hljs-built_in">window</span>.instgrm.Embeds.process();
+
+  <span class="hljs-keyword">this</span>.props.onChange &amp;&amp; <span class="hljs-keyword">this</span>.props.onChange(<span class="hljs-keyword">this</span>.convertedPost);
+}
+
+<span class="hljs-keyword">let</span> AsciidocRender = React.createClass({
+
+  componentDidMount: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.convertedPost = {};
+    applyScript.bind(<span class="hljs-keyword">this</span>)();
+  },
+
+  componentDidUpdate: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(prevProps, prevState)</span> </span>{
+    applyScript.bind(<span class="hljs-keyword">this</span>)();
+  },
+
+  render: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.convertedPost = convertContent(<span class="hljs-keyword">this</span>.props.content || <span class="hljs-string">''</span>);
+    <span class="hljs-keyword">let</span> htmlContent = <span class="hljs-keyword">this</span>.convertedPost.html;
+    <span class="hljs-keyword">let</span> title = <span class="hljs-keyword">this</span>.convertedPost.attributes &amp;&amp; <span class="hljs-keyword">this</span>.convertedPost.attributes.map[<span class="hljs-string">'doctitle'</span>];
+    <span class="hljs-keyword">let</span> tags = <span class="hljs-keyword">this</span>.convertedPost.attributes.map[<span class="hljs-string">'hp-tags'</span>] || <span class="hljs-keyword">this</span>.props.content &amp;&amp; <span class="hljs-string">'No tag'</span>;
+    <span class="hljs-keyword">let</span> tagsComponent = <span class="hljs-string">''</span>;
+
+    <span class="hljs-keyword">if</span> (tags) {
+      tagsComponent = (<span class="xml"><span class="hljs-tag">&lt;<span class="hljs-title">p</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-tags"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span> {tags}<span class="hljs-tag">&lt;/<span class="hljs-title">p</span>&gt;</span>);
+    }
+
+    return (
+      <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">id</span>=<span class="hljs-value">"asciidoc-render"</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"asciidoc-render"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">h1</span>&gt;</span>{title}<span class="hljs-tag">&lt;/<span class="hljs-title">h1</span>&gt;</span>
+        {tagsComponent}
+        <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">ref</span>=<span class="hljs-value">"content"</span>  <span class="hljs-attribute">dangerouslySetInnerHTML</span>=<span class="hljs-value">{{__html:</span> <span class="hljs-attribute">htmlContent</span>}}&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+    );
+  }
+
+});
+
+module.exports = AsciidocRender;
+</span></div></div></div></div></body></html>

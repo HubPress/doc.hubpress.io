@@ -1,0 +1,232 @@
+<!DOCTYPE html><html lang="en"><head><title>components/Settings.react</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="components/Settings.react"><meta name="groc-project-path" content="src/hubpress/scripts/components/Settings.react.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/components/Settings.react.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> React = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react'</span>);
+<span class="hljs-keyword">const</span> LinkedStateMixin = <span class="hljs-built_in">require</span>(<span class="hljs-string">"react/lib/LinkedStateMixin"</span>);
+<span class="hljs-keyword">const</span> assign = <span class="hljs-built_in">require</span>(<span class="hljs-string">'object-assign'</span>);
+<span class="hljs-keyword">const</span> Router = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react-router'</span>);
+<span class="hljs-keyword">const</span> Loader = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Loader.react.js'</span>);
+import Authentication from <span class="hljs-string">'./Authentication'</span>;
+import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+import SettingsActionCreators from <span class="hljs-string">'../actions/SettingsActionCreators'</span>;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_getState</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">let</span> config = SettingsStore.config();
+
+  <span class="hljs-keyword">return</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Meta</p></div></div><div class="code"><div class="wrapper">    username : config.meta.username,
+    repositoryName : config.meta.repositoryName,
+    branch : config.meta.branch,
+    cname : config.meta.cname,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>site</p></div></div><div class="code"><div class="wrapper">    title: config.site &amp;&amp; config.site.title,
+    description: config.site &amp;&amp; config.site.description,
+    logo: config.site &amp;&amp; config.site.logo,
+    cover: config.site &amp;&amp; config.site.cover,
+    postsPerPage: config.site &amp;&amp; config.site.postsPerPage,
+    googleAnalytics: config.site &amp;&amp; config.site.googleAnalytics,
+    disqus: config.site &amp;&amp; config.site.disqus,
+
+    <span class="hljs-comment">//socialnetwork</span>
+    email: config.socialnetwork &amp;&amp; config.socialnetwork.email,
+    twitter: config.socialnetwork &amp;&amp; config.socialnetwork.twitter,
+    googleplus: config.socialnetwork &amp;&amp; config.socialnetwork.googleplus,
+    linkedin: config.socialnetwork &amp;&amp; config.socialnetwork.linkedin,
+    github: config.socialnetwork &amp;&amp; config.socialnetwork.github,
+    facebook: config.socialnetwork &amp;&amp; config.socialnetwork.facebook,
+    flickr: config.socialnetwork &amp;&amp; config.socialnetwork.flickr,
+    pinterest: config.socialnetwork &amp;&amp; config.socialnetwork.pinterest,
+    instagram: config.socialnetwork &amp;&amp; config.socialnetwork.instagram,</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>theme</p></div></div><div class="code"><div class="wrapper">    theme: config.theme.name,
+    loading: <span class="hljs-literal">false</span>
+  };
+}
+
+<span class="hljs-keyword">class</span> Settings {
+  constructor() {
+    <span class="hljs-keyword">this</span>.mixins = [ Authentication ];
+  }
+
+  getInitialState() {
+    <span class="hljs-keyword">return</span> _getState();
+  }
+
+  componentDidMount() {
+    SettingsStore.addChangeListener(<span class="hljs-keyword">this</span>._onSettingsStoreChange);
+  }
+
+  componentWillUnmount() {
+    SettingsStore.removeChangeListener(<span class="hljs-keyword">this</span>._onSettingsStoreChange);
+  }
+
+  _onSettingsStoreChange() {
+    <span class="hljs-keyword">this</span>.setState(assign(<span class="hljs-keyword">this</span>.state, {loading: <span class="hljs-literal">false</span>}));
+  }
+
+  getSiteUrl() {
+    <span class="hljs-keyword">return</span> SettingsStore.getSiteUrl({
+      username: <span class="hljs-keyword">this</span>.state.username,
+      repositoryName: <span class="hljs-keyword">this</span>.state.repositoryName,
+      cname: <span class="hljs-keyword">this</span>.state.cname,
+      branch: <span class="hljs-keyword">this</span>.state.branch
+    });
+  }
+
+  handleSubmit(event) {
+    event.preventDefault();
+    <span class="hljs-keyword">const</span> settings = {
+      meta: {
+        username: <span class="hljs-keyword">this</span>.state.username,
+        repositoryName: <span class="hljs-keyword">this</span>.state.repositoryName,
+        branch:<span class="hljs-keyword">this</span>.state.branch,
+        cname:<span class="hljs-keyword">this</span>.state.cname
+      },
+      site: {
+        title: <span class="hljs-keyword">this</span>.state.title,
+        description: <span class="hljs-keyword">this</span>.state.description,
+        logo: <span class="hljs-keyword">this</span>.state.logo,
+        cover: <span class="hljs-keyword">this</span>.state.cover,
+        postsPerPage: <span class="hljs-keyword">this</span>.state.postsPerPage,
+        googleAnalytics: <span class="hljs-keyword">this</span>.state.googleAnalytics,
+        disqus: <span class="hljs-keyword">this</span>.state.disqus
+      },
+      socialnetwork:{
+        email: <span class="hljs-keyword">this</span>.state.email,
+        twitter: <span class="hljs-keyword">this</span>.state.twitter,
+        googleplus: <span class="hljs-keyword">this</span>.state.googleplus,
+        linkedin: <span class="hljs-keyword">this</span>.state.linkedin,
+        facebook: <span class="hljs-keyword">this</span>.state.facebook,
+        flickr: <span class="hljs-keyword">this</span>.state.flickr,
+        instagram: <span class="hljs-keyword">this</span>.state.instagram,
+        pinterest: <span class="hljs-keyword">this</span>.state.pinterest,
+        github: <span class="hljs-keyword">this</span>.state.github
+      },
+      theme:{
+        name: <span class="hljs-keyword">this</span>.state.theme,
+        url: SettingsStore.getThemeUrl(<span class="hljs-keyword">this</span>.state.theme)
+      }
+    }
+    SettingsActionCreators.saveAndPublish(settings);
+
+    <span class="hljs-keyword">this</span>.setState(assign(<span class="hljs-keyword">this</span>.state, {loading: <span class="hljs-literal">true</span>}));
+  }
+
+  render() {
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-title">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">Loader</span> <span class="hljs-attribute">loading</span>=<span class="hljs-value">{this.state.loading}</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">Loader</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"container settings"</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">form</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"settingsForm"</span> <span class="hljs-attribute">noValidate</span> <span class="hljs-attribute">onSubmit</span>=<span class="hljs-value">{this.handleSubmit}</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">fieldset</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">legend</span>&gt;</span>Meta<span class="hljs-tag">&lt;/<span class="hljs-title">legend</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-title">ol</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"username"</span>&gt;</span>Git username<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">p</span>&gt;</span>{this.state.username}<span class="hljs-tag">&lt;/<span class="hljs-title">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"repositoryName"</span>&gt;</span>Git repository name<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">p</span>&gt;</span>{this.state.repositoryName}<span class="hljs-tag">&lt;/<span class="hljs-title">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"branch"</span>&gt;</span>Git branch<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">p</span>&gt;</span>{this.state.branch}<span class="hljs-tag">&lt;/<span class="hljs-title">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"cname"</span>&gt;</span>Git CNAME<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"cname"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('cname')}</span>  <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">p</span>&gt;</span>{this.getSiteUrl()}<span class="hljs-tag">&lt;/<span class="hljs-title">p</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">ol</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;/<span class="hljs-title">fieldset</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">fieldset</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">legend</span>&gt;</span>Site<span class="hljs-tag">&lt;/<span class="hljs-title">legend</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-title">ol</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"title"</span>&gt;</span>Title<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"title"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('title')}</span>  <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> <span class="hljs-attribute">required</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"description"</span>&gt;</span>Description<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">textarea</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"description"</span> <span class="hljs-attribute">cols</span>=<span class="hljs-value">"30"</span> <span class="hljs-attribute">rows</span>=<span class="hljs-value">"10"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('description')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> <span class="hljs-attribute">required</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">textarea</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"logo"</span>&gt;</span>Logo<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"logo"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('logo')}</span>  <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> <span class="hljs-attribute">required</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"cover"</span>&gt;</span>Cover image<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"cover"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('cover')}</span>  <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> <span class="hljs-attribute">required</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"theme"</span>&gt;</span>Theme<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"theme"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('theme')}</span>  <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> <span class="hljs-attribute">required</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"postsPerPage"</span>&gt;</span>Posts per page<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"postsPerPage"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('postsPerPage')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> <span class="hljs-attribute">required</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"googleAnalytics"</span>&gt;</span>Google analytics<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"googleAnalytics"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('googleAnalytics')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"disqus"</span>&gt;</span>Disqus shortname<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"disqus"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('disqus')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">ol</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;/<span class="hljs-title">fieldset</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">fieldset</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">legend</span>&gt;</span>Social network<span class="hljs-tag">&lt;/<span class="hljs-title">legend</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-title">ol</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"email"</span>&gt;</span>Email<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"email"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('email')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"twitter"</span>&gt;</span>Twitter<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"twitter"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('twitter')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"facebook"</span>&gt;</span>Facebook<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"facebook"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('facebook')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"googleplus"</span>&gt;</span>Google+<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"googleplus"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('googleplus')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"instagram"</span>&gt;</span>Instagram<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"instagram"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('instagram')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"pinterest"</span>&gt;</span>Pinterest<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"pinterest"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('pinterest')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"flickr"</span>&gt;</span>Flickr<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"flickr"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('flickr')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"linkedin"</span>&gt;</span>LinkedIn<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"linkedin"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('linkedin')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">label</span> <span class="hljs-attribute">htmlFor</span>=<span class="hljs-value">"github"</span>&gt;</span>Github<span class="hljs-tag">&lt;/<span class="hljs-title">label</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">input</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"text"</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"github"</span> <span class="hljs-attribute">valueLink</span>=<span class="hljs-value">{this.linkState('github')}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"form-control"</span> /&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">ol</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;/<span class="hljs-title">fieldset</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">type</span>=<span class="hljs-value">"submit"</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"button success"</span>&gt;</span>Submit<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;/<span class="hljs-title">form</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+      <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+
+    )
+  }
+}
+
+export default React.createClass(assign(Settings.prototype, LinkedStateMixin, Authentication));
+</span></div></div></div></div></body></html>

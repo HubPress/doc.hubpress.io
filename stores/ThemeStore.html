@@ -1,0 +1,123 @@
+<!DOCTYPE html><html lang="en"><head><title>stores/ThemeStore</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="stores/ThemeStore"><meta name="groc-project-path" content="src/hubpress/scripts/stores/ThemeStore.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/stores/ThemeStore.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">import HpConstants from <span class="hljs-string">'../constants/HpConstants'</span>;
+import <span class="hljs-string">'../utils/HandlebarsHelpers'</span>;
+import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>
+<span class="hljs-keyword">const</span> HpDispatcher = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../dispatchers/HpDispatcher'</span>);
+<span class="hljs-keyword">const</span> EventEmitter = <span class="hljs-built_in">require</span>(<span class="hljs-string">'events'</span>).EventEmitter;
+<span class="hljs-keyword">const</span> Handlebars = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>);
+
+
+<span class="hljs-keyword">const</span> ActionTypes = HpConstants.ActionTypes;
+<span class="hljs-keyword">const</span> CHANGE_EVENT = <span class="hljs-string">'change'</span>;
+<span class="hljs-keyword">const</span> LAYOUT_PATTERN = <span class="hljs-regexp">/{{!&lt;\s+([A-Za-z0-9\._\-\/]+)\s*}}/</span>;
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dispatcher</span><span class="hljs-params">(payload)</span> </span>{
+  <span class="hljs-keyword">let</span> action = payload.action;
+  <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'ThemeStores - dispatcher'</span>);
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'ThemeStores - dispatcher'</span>, action);
+
+  <span class="hljs-keyword">switch</span>(action.type) {
+    <span class="hljs-keyword">case</span> ActionTypes.RECEIVE_INIT:
+      <span class="hljs-keyword">this</span>.setThemeName(action.theme.name);
+      <span class="hljs-keyword">this</span>.setThemeVersion(action.theme.version);
+      <span class="hljs-keyword">this</span>.registerFiles(action.theme.files);
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+   <span class="hljs-keyword">default</span>:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>nothing</p></div></div><div class="code"><div class="wrapper">  }
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getTemplateOptions</span><span class="hljs-params">()</span> </span>{
+  <span class="hljs-keyword">let</span> blog = SettingsStore.config().site;
+  blog.url = SettingsStore.getSiteUrl();
+
+  <span class="hljs-keyword">return</span> {
+    data: {
+      blog: blog
+    }
+  }
+}
+
+<span class="hljs-keyword">class</span> ThemeStore extends EventEmitter {
+
+  constructor(){
+    <span class="hljs-keyword">this</span>.name = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.version = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.templateCache = <span class="hljs-keyword">new</span> Map();
+    <span class="hljs-keyword">this</span>.dispatcherToken = HpDispatcher.register(dispatcher.bind(<span class="hljs-keyword">this</span>));
+  }
+
+  emitChange() {
+    <span class="hljs-keyword">this</span>.emit(CHANGE_EVENT);
+  }
+
+  addChangeListener(callback) {
+    <span class="hljs-keyword">this</span>.on(CHANGE_EVENT, callback);
+  }
+
+  removeChangeListener(callback) {
+    <span class="hljs-keyword">this</span>.removeListener(CHANGE_EVENT, callback);
+  }
+
+  registerTheme(theme) {
+    <span class="hljs-keyword">this</span>.setThemeName(theme.name);
+    <span class="hljs-keyword">this</span>.setThemeVersion(theme.version);
+    <span class="hljs-keyword">this</span>.registerFiles(theme.files);
+  }
+
+  registerFiles(themeFiles) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'ThemeStore - registerFiles'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'ThemeStore - registerFiles'</span>, themeFiles);
+    themeFiles.forEach((file) =&gt; {
+      <span class="hljs-keyword">if</span> (file.path.indexOf(<span class="hljs-string">'partials/'</span>) === <span class="hljs-number">0</span>) {
+        Handlebars.registerPartial(file.name, file.content);
+      }
+      <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">let</span> data = {
+          name: file.name,
+          template: Handlebars.compile(file.content)
+        };
+
+        <span class="hljs-keyword">let</span> matches = file.content.match(LAYOUT_PATTERN);
+        <span class="hljs-keyword">if</span> (matches) {
+          data.layout = matches[<span class="hljs-number">1</span>];
+        }
+
+        <span class="hljs-keyword">this</span>.templateCache.set(file.name, data);
+
+      }
+    });
+  }
+
+  template(templateName, data) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'ThemeStore - template'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'ThemeStore - template'</span>, templateName, data);
+    <span class="hljs-keyword">let</span> templateCache = <span class="hljs-keyword">this</span>.templateCache.get(templateName);
+    <span class="hljs-keyword">let</span> htmlContent = templateCache.template(data, getTemplateOptions());
+
+    <span class="hljs-keyword">if</span> (templateCache.layout) {
+      data.body = htmlContent;
+      templateCache = <span class="hljs-keyword">this</span>.templateCache.get(templateCache.layout);
+      htmlContent = templateCache.template(data, getTemplateOptions());
+    }
+
+    <span class="hljs-keyword">return</span> htmlContent;
+  }
+
+  setThemeName(name) {
+    <span class="hljs-keyword">this</span>.name = name;
+  }
+
+  getThemeName() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.name;
+  }
+
+  getThemeVersion() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.version ;
+  }
+  setThemeVersion(version) {
+    <span class="hljs-keyword">this</span>.version = version;
+  }
+
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> ThemeStore();</div></div></div></div></body></html>

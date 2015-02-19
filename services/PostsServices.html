@@ -1,0 +1,663 @@
+<!DOCTYPE html><html lang="en"><head><title>services/PostsServices</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="services/PostsServices"><meta name="groc-project-path" content="src/hubpress/scripts/services/PostsServices.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/services/PostsServices.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-pi">'use strict'</span>;
+import Github from <span class="hljs-string">'../resources/Github.js'</span>;
+import IndexedDb from <span class="hljs-string">'../resources/IndexedDb.js'</span>;
+import PostsActionIDBCreators from <span class="hljs-string">'../actions/PostsActionIDBCreators'</span>;
+import AppActionServerCreators from <span class="hljs-string">'../actions/AppActionServerCreators'</span>;
+import Generators from <span class="hljs-string">'../generators/Generators.js'</span>;
+<span class="hljs-keyword">const</span> url = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../utils/url'</span>);
+<span class="hljs-keyword">const</span> Q = <span class="hljs-built_in">require</span>(<span class="hljs-string">'q'</span>);
+<span class="hljs-keyword">const</span> slug = <span class="hljs-built_in">require</span>(<span class="hljs-string">'slug'</span>);
+<span class="hljs-keyword">const</span> _ = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>);
+<span class="hljs-keyword">const</span> moment = <span class="hljs-built_in">require</span>(<span class="hljs-string">'moment'</span>);
+<span class="hljs-keyword">const</span> assign = <span class="hljs-built_in">require</span>(<span class="hljs-string">'object-assign'</span>);
+<span class="hljs-keyword">const</span> uuid = <span class="hljs-built_in">require</span>(<span class="hljs-string">'node-uuid'</span>);
+<span class="hljs-keyword">const</span> asciidoctor = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../utils/asciidoctor'</span>);
+
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_getPost</span><span class="hljs-params">(db, id)</span> </span>{
+  <span class="hljs-keyword">return</span> db.posts
+    .where(<span class="hljs-string">'id'</span>)
+    .equals(id)
+    .first();
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_localSave</span><span class="hljs-params">(post)</span> </span>{
+  <span class="hljs-keyword">let</span> deferred = Q.defer();
+  <span class="hljs-keyword">let</span> published_at = post.attributes.map[<span class="hljs-string">'published_at'</span>] || post.published_at || moment().format(<span class="hljs-string">'YYYY-MM-DD'</span>);
+  <span class="hljs-keyword">let</span> title = post.attributes.map[<span class="hljs-string">'doctitle'</span>] ;
+  <span class="hljs-keyword">let</span> image = post.attributes.map[<span class="hljs-string">'hp-image'</span>] ;
+  <span class="hljs-keyword">let</span> tags = post.attributes.map[<span class="hljs-string">'hp-tags'</span>] &amp;&amp; post.attributes.map[<span class="hljs-string">'hp-tags'</span>].split(<span class="hljs-string">','</span>) ;
+  <span class="hljs-keyword">let</span> name = slug(published_at + <span class="hljs-string">'-'</span> + title) +<span class="hljs-string">'.adoc'</span>;
+  <span class="hljs-keyword">let</span> urlPost = url.getPostUrl(name);
+
+  <span class="hljs-keyword">let</span> postToSave = assign({}, post, {
+		published_at: published_at,
+		name: name,
+		url: urlPost,
+    title: title,
+    image: image,
+    tags: tags
+	});
+  <span class="hljs-keyword">let</span> db = IndexedDb.getDb();
+  db.transaction(<span class="hljs-string">'rw'</span>, db.posts, ()=&gt;{
+    db.posts.put(postToSave);
+  })
+  .then(()=&gt;{
+    deferred.resolve(postToSave);
+  })
+  .catch((err) =&gt; {
+    deferred.reject(err);
+  });
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_remoteSave</span><span class="hljs-params">(repository, context, db, id)</span> </span>{
+  <span class="hljs-keyword">return</span> _getPost(db, id)
+  .then(_movePostIfNecessary(repository, context))
+  .then(_writePost(repository, context))
+  .then(_localSave);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_deleteElements</span><span class="hljs-params">(repository, context, elementPath)</span> </span>{
+  <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+  repository.delete(context.branch, elementPath, (err, sha)=&gt;{
+
+    <span class="hljs-keyword">if</span> (err) {
+      deferred.reject(err);
+    }
+    <span class="hljs-keyword">else</span> {
+      deferred.resolve(sha);
+    }
+  });
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_movePostIfNecessary</span><span class="hljs-params">(repository, context)</span> </span>{
+
+	<span class="hljs-keyword">return</span> (post) =&gt; {
+	  <span class="hljs-keyword">let</span> promise;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Check if move is necessary</p></div></div><div class="code"><div class="wrapper">	  <span class="hljs-keyword">if</span> (post.original &amp;&amp; post.name !== post.original.name) {
+	    <span class="hljs-keyword">let</span> deferred = Q.defer();
+	    promise = deferred.promise;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Move post</p></div></div><div class="code"><div class="wrapper">	    repository.move(context.branch, `_posts/${post.original.name}`, `_posts/${post.name}`, (err, sha) =&gt; {
+	      <span class="hljs-keyword">if</span> (err) {
+	        deferred.reject(err);
+	      }
+	      <span class="hljs-keyword">else</span> {</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if published, then removed</p></div></div><div class="code"><div class="wrapper">          <span class="hljs-keyword">if</span> (post.published) {
+            <span class="hljs-keyword">let</span> elementPath = url.getPostGhPath(post.original.name);
+            _deleteElements(repository, context, elementPath)
+            .then((sha) =&gt; {
+              deferred.resolve({post: post, sha: sha});
+            })
+            .catch((err) =&gt; {
+              deferred.reject(err);
+            })
+            .done();
+          }
+          <span class="hljs-keyword">else</span> {
+            deferred.resolve({post: post, sha: sha});
+          }
+	      }
+	    });
+	  }
+	  <span class="hljs-keyword">else</span> {
+	    promise = Q({post: post});
+	  }
+	  <span class="hljs-keyword">return</span> promise;
+
+	}
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_writePost</span><span class="hljs-params">(repository, context)</span> </span>{
+
+	<span class="hljs-keyword">return</span> (value) =&gt; {
+		<span class="hljs-keyword">let</span> post = value.post;
+		<span class="hljs-keyword">let</span> deferred = Q.defer();
+
+		repository.write(context.branch, <span class="hljs-string">'_posts/'</span>+post.name, post.content, <span class="hljs-string">'Update '</span>+post.name, (err, sha) =&gt; {
+			<span class="hljs-keyword">if</span> (err) {
+				deferred.reject(err);
+			}
+			<span class="hljs-keyword">else</span> {
+				post.original = assign({}, post);
+				post.original.url = url.getPostUrl(post.original.name);
+				post.original.path = <span class="hljs-string">'_posts/'</span> + post.original.name;
+				post.original.sha = sha;
+
+				deferred.resolve(post);
+			}
+
+		})
+
+		<span class="hljs-keyword">return</span> deferred.promise;
+
+	}
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_getGithubPostsSha</span><span class="hljs-params">(repository, context)</span> </span>{
+
+  <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+  repository.read(context.branch, <span class="hljs-string">''</span>, (err, elements) =&gt; {
+    <span class="hljs-keyword">if</span> (err) {
+      deferred.reject(err);
+    }
+    <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">let</span> postsSha;
+      elements = <span class="hljs-built_in">JSON</span>.parse(elements);
+
+      elements.forEach((element) =&gt; {
+        <span class="hljs-keyword">if</span> (element.name === <span class="hljs-string">'_posts'</span>){
+          postsSha = element.sha;
+        }
+      });
+      deferred.resolve(postsSha);
+    }
+  });
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+
+};</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>1 get post github
+1.1 filter post to sync
+2 check if published
+3 on va chercher le post correspondant et on le MAJ
+4 on supprime les posts qui ne sont plus sur Github</p></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_getPostsGithub</span><span class="hljs-params">(repository, context, sha)</span> </span>{
+  <span class="hljs-keyword">let</span> deferred;
+
+  <span class="hljs-keyword">if</span> (sha === localStorage.postsSha) {
+    deferred = Q.fcall(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+      <span class="hljs-keyword">return</span> [];
+    });
+  }
+  <span class="hljs-keyword">else</span> {
+    deferred = Q.defer();
+    repository.read(context.branch, <span class="hljs-string">'_posts'</span>, (err, posts) =&gt; {
+      <span class="hljs-keyword">if</span> (err) {
+        deferred.reject(err);
+      }
+      <span class="hljs-keyword">else</span> {
+        deferred.resolve(<span class="hljs-built_in">JSON</span>.parse(posts));
+      }
+    });
+
+  }
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_filterPostsToSync</span><span class="hljs-params">(db, posts)</span> </span>{
+  <span class="hljs-keyword">let</span> promises = [];
+
+  posts.forEach((postGithub) =&gt; {
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+    promises.push(deferred.promise);
+
+    db.posts.where(<span class="hljs-string">'original.name'</span>).equals(postGithub.name).first()
+    .then((postDb) =&gt; {
+      <span class="hljs-keyword">let</span> _post = <span class="hljs-literal">null</span>;
+
+      postDb = postDb || {id: uuid.v4()};
+
+      <span class="hljs-keyword">if</span> (postDb.sha !== postGithub.sha) {
+        _post = assign({}, postGithub, postDb);
+      }
+
+      deferred.resolve(_post)
+    })
+    .catch((err) =&gt; {
+      deferred.reject(err);
+    })
+  })
+
+  <span class="hljs-keyword">return</span> Q.all(promises);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_markIfPublished</span><span class="hljs-params">(repository, context, posts)</span> </span>{
+  <span class="hljs-keyword">let</span> promises = [];
+  <span class="hljs-keyword">let</span> _posts = _.compact(posts);
+
+  _posts.forEach((post) =&gt; {
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+    promises.push(deferred.promise);
+
+    repository.getSha(context.branch, url.getPostGhPath(post.name), (err, sha) =&gt; {
+      <span class="hljs-keyword">if</span> (err &amp;&amp; err.error !==<span class="hljs-number">404</span>) {
+        deferred.reject(err);
+      }
+      <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">let</span> published = sha ? <span class="hljs-number">1</span> : <span class="hljs-number">0</span>;
+        <span class="hljs-keyword">let</span> _post = assign({}, post, {published: published});
+        deferred.resolve(_post);
+      }
+    });
+  });
+
+  <span class="hljs-keyword">return</span> Q.all(promises);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_readContentAndConvert</span><span class="hljs-params">(repository, context, posts)</span> </span>{
+  <span class="hljs-keyword">let</span> promises = [];
+
+  posts.forEach((post) =&gt; {
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+    promises.push(deferred.promise);
+
+    repository.read(context.branch, post.path, (err, content) =&gt; {
+      <span class="hljs-keyword">if</span> (err) {
+        deffered.reject(err);
+      }
+      <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">let</span> _post = assign({}, post, asciidoctor.convert(content), {
+          content: content
+        });
+        deferred.resolve(_post);
+      }
+
+    });
+  });
+
+  <span class="hljs-keyword">return</span> Q.all(promises);
+
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_majPostsIndexDb</span><span class="hljs-params">(repository, context, posts)</span> </span>{
+
+  <span class="hljs-keyword">let</span> promises = [];
+
+  posts.forEach((post) =&gt; {
+    <span class="hljs-keyword">let</span> original = _.pick(post, <span class="hljs-string">'attributes'</span>, <span class="hljs-string">'html'</span>, <span class="hljs-string">'tags'</span>, <span class="hljs-string">'content'</span>, <span class="hljs-string">'name'</span>, <span class="hljs-string">'path'</span>, <span class="hljs-string">'sha'</span>);
+
+    original.title = original.attributes.map[<span class="hljs-string">'doctitle'</span>] ;
+    original.image = original.attributes.map[<span class="hljs-string">'hp-image'</span>] ;
+    original.tags = original.attributes.map[<span class="hljs-string">'hp-tags'</span>] &amp;&amp; post.attributes.map[<span class="hljs-string">'hp-tags'</span>].split(<span class="hljs-string">','</span>) ;
+
+    <span class="hljs-keyword">let</span> _postToSave = assign({}, post, {original: original});
+    _postToSave.original.published_at = _postToSave.published_at = original.name.split(<span class="hljs-string">'-'</span>).slice(<span class="hljs-number">0</span>,<span class="hljs-number">3</span>).join(<span class="hljs-string">'-'</span>);
+
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+    promises.push(deferred.promise);
+
+    _localSave(_postToSave)
+    .then((_post) =&gt; {
+      deferred.resolve(_post);
+    })
+    .catch((err)=&gt;{
+      deferred.reject(err);
+    })
+  });
+
+  <span class="hljs-keyword">return</span> Q.all(promises);
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_removePostsDeleted</span><span class="hljs-params">()</span> </span>{
+
+}
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_updateHead</span><span class="hljs-params">(repository, context, sha)</span> </span>{
+  <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+  repository.updateHead(context.branch, sha, (err, commit) =&gt; {
+    <span class="hljs-keyword">if</span> (err) {
+      deferred.reject(err);
+    }
+    <span class="hljs-keyword">else</span> {
+      deferred.resolve(commit);
+    }
+  })
+
+  <span class="hljs-keyword">return</span> deferred.promise;
+}
+
+<span class="hljs-keyword">class</span> PostsServices {
+
+	constructor() {}
+
+	getPosts() {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - getPosts'</span>);
+		IndexedDb.getDb().posts
+			.orderBy(<span class="hljs-string">'name'</span>)
+			.reverse()
+			.toArray()
+			.then((posts) =&gt; {
+				PostsActionIDBCreators.receivePosts(posts);
+			})
+      .catch((err) =&gt; {
+        conso.error(err);
+				PostsActionIDBCreators.receivePosts([]);
+
+      });
+	}
+
+	getPost(id) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - getPost'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsServices - getPost'</span>, id);
+    <span class="hljs-keyword">const</span> db = IndexedDb.getDb();
+    _getPost(db, id)
+			.then((post) =&gt; {
+        <span class="hljs-keyword">if</span> (post) {
+          PostsActionIDBCreators.receivePost(post);
+        }
+        <span class="hljs-keyword">else</span> {
+          PostsActionIDBCreators.receivePost({id: id});
+        }
+
+			})
+			.catch((err) =&gt; {
+        <span class="hljs-built_in">console</span>.error(err);
+				PostsActionIDBCreators.receivePost({id: id});
+			});
+	}
+
+	localSave(post) {
+    <span class="hljs-comment">//console.info('PostsServices - localSave');</span>
+    <span class="hljs-comment">//console.log('PostsServices - localSave', post);</span>
+    _localSave(post)
+      .then((_post)=&gt;{
+        <span class="hljs-comment">//console.log('Save post ', _post);</span>
+      })
+      .catch((err)=&gt;{
+        <span class="hljs-built_in">console</span>.error(<span class="hljs-string">'Erreur save post '</span>, err);
+      })
+
+	}
+
+  remoteSave(id) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - remoteSave'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsServices - remoteSave'</span>, id);
+		<span class="hljs-keyword">let</span> context = Github.getContext();
+		<span class="hljs-keyword">let</span> github = Github.getGithub();
+    <span class="hljs-keyword">let</span> repository = github.getRepo(context.username, context.repositoryName);
+    <span class="hljs-keyword">const</span> db = IndexedDb.getDb();
+
+    _remoteSave(repository, context, db, id)
+		.then((post)=&gt;{
+			PostsActionIDBCreators.receiveRemoteSave({
+        post: post,
+        message: {
+          type: <span class="hljs-string">'success'</span>,
+          title: <span class="hljs-string">'Remote save'</span>,
+          content: <span class="hljs-string">'Your post has been saved with success.'</span>
+        }
+      });
+		})
+		.catch((err) =&gt; {
+			PostsActionIDBCreators.receiveRemoteSave({
+        message: {
+          type: <span class="hljs-string">'error'</span>,
+          title: <span class="hljs-string">'Remote save'</span>,
+          content: <span class="hljs-string">'An error has occurred, see your console for more informations.'</span>
+        }
+      });
+		});
+  }
+
+  synchronizePosts() {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsService - synchronizePosts'</span>);
+
+    <span class="hljs-keyword">let</span> context = Github.getContext();
+    <span class="hljs-keyword">let</span> github = Github.getGithub();
+    <span class="hljs-keyword">let</span> db = IndexedDb.getDb();
+    <span class="hljs-keyword">let</span> repository = github.getRepo(context.username, context.repositoryName);
+
+    _getGithubPostsSha(repository, context)
+    .then((sha) =&gt; {
+      <span class="hljs-keyword">return</span> _getPostsGithub(repository,context,sha);
+    })
+    .then((posts)=&gt;{
+      <span class="hljs-keyword">return</span> _filterPostsToSync(db, posts);
+    })
+    .then((posts)=&gt;{
+      <span class="hljs-keyword">return</span> _markIfPublished(repository, context, posts);
+    })
+    .then((posts)=&gt;{
+      <span class="hljs-keyword">return</span> _readContentAndConvert(repository, context, posts);
+    })
+    .then((posts)=&gt;{
+      <span class="hljs-keyword">return</span> _majPostsIndexDb(repository, context, posts);
+    })
+    .then((posts) =&gt; {
+      AppActionServerCreators.finishSynchronize(posts);
+    })
+    .catch((err) =&gt; {
+      <span class="hljs-built_in">console</span>.log(err);
+      AppActionServerCreators.finishSynchronize(err);
+
+    })
+    .done();
+  }
+
+	saveAndMarkAsPublished(id) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - saveAndMarkAsPublished'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsServices - saveAndMarkAsPublished'</span>, id);
+    <span class="hljs-keyword">let</span> context = Github.getContext();
+    <span class="hljs-keyword">let</span> github = Github.getGithub();
+    <span class="hljs-keyword">let</span> repository = github.getRepo(context.username, context.repositoryName);
+    <span class="hljs-keyword">const</span> db = IndexedDb.getDb();
+
+    <span class="hljs-keyword">return</span> _remoteSave(repository, context, db, id)
+    .then((post) =&gt; {
+      <span class="hljs-keyword">let</span> _post = assign({}, post, {published: <span class="hljs-number">1</span>});
+      <span class="hljs-keyword">return</span> _localSave(_post);
+    });
+	}
+
+  markAsUnpublishedAndDelete(id) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - markAsUnpublishedAndDelete'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsServices - markAsUnpublishedAndDelete'</span>, id);
+    <span class="hljs-keyword">let</span> context = Github.getContext();
+    <span class="hljs-keyword">let</span> github = Github.getGithub();
+    <span class="hljs-keyword">let</span> repository = github.getRepo(context.username, context.repositoryName);
+    <span class="hljs-keyword">const</span> db = IndexedDb.getDb();
+    <span class="hljs-keyword">let</span> post;
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+    _getPost(db, id)
+    .then((_post) =&gt; {
+      post = _post;
+      <span class="hljs-keyword">var</span> elementPath = url.getPostGhPath(post.original.name);
+      <span class="hljs-keyword">return</span> _deleteElements(repository, context, elementPath)
+    })
+    .then(() =&gt; {
+      <span class="hljs-keyword">let</span> _post = assign({}, post, {published: <span class="hljs-number">0</span>});
+
+      <span class="hljs-keyword">return</span> _localSave(_post);
+    })
+    .then((savedPost)=&gt;{
+      deferred.resolve(savedPost);
+    })
+    .catch((err) =&gt; {
+      <span class="hljs-keyword">if</span> (err !== <span class="hljs-string">'not found'</span>) {
+        deferred.reject(err.error);
+      }
+      <span class="hljs-keyword">else</span> {
+        <span class="hljs-keyword">let</span> _post = assign({}, post, {published: <span class="hljs-number">0</span>});
+
+        _localSave(_post)
+        .then((savedPost)=&gt;{
+          deferred.resolve(savedPost);
+        }).done();
+      }
+    });
+
+    <span class="hljs-keyword">return</span> deferred.promise;
+  }
+
+  getPublishedPosts() {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - getPublishedPosts'</span>);
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+    IndexedDb.getDb().posts
+    .where(<span class="hljs-string">'published'</span>)
+    .equals(<span class="hljs-number">1</span>)
+    .toArray()
+    .then((posts) =&gt; {
+      <span class="hljs-keyword">if</span> (!posts) {
+        deferred.resolve([]);
+        <span class="hljs-keyword">return</span>;
+      }
+
+      posts.sort((postA, postB) =&gt; {
+        <span class="hljs-keyword">if</span> (postA.original.name &gt; postB.original.name) {
+          <span class="hljs-keyword">return</span> -<span class="hljs-number">1</span>;
+        }
+        <span class="hljs-keyword">if</span> (postA.original.name &lt; postB.original.name) {
+          <span class="hljs-keyword">return</span> <span class="hljs-number">1</span>;
+        }
+        <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+      });
+
+      deferred.resolve(posts);
+    });
+
+    <span class="hljs-keyword">return</span> deferred.promise;
+  }
+
+  publishElements(elements) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - publishElements'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsServices - publishElements'</span>, elements);
+    <span class="hljs-keyword">let</span> context = Github.getContext();
+    <span class="hljs-keyword">let</span> github = Github.getGithub();
+    <span class="hljs-keyword">let</span> repository = github.getRepo(context.username, context.repositoryName);
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+    repository.writeAll(context.branch, elements, (err, commit) =&gt; {
+      <span class="hljs-keyword">if</span> (err) {
+        deferred.reject(err);
+      }
+      <span class="hljs-keyword">else</span> {
+        <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'updateHead'</span>);
+        _updateHead(repository, context, commit)
+        .then((commit)=&gt;{
+          <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'updateHead done'</span>);
+          deferred.resolve(commit);
+        })
+        .catch((err)=&gt;{
+          <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'updateHead'</span>, err);
+          deferred.reject(err);
+        })
+      }
+    });
+
+    <span class="hljs-keyword">return</span> deferred.promise;
+  }
+
+  publishPost(id) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - publishPost'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsServices - publishPost'</span>, id);
+    <span class="hljs-keyword">let</span> commit;
+    <span class="hljs-keyword">let</span> postToPublish;
+    <span class="hljs-keyword">this</span>.saveAndMarkAsPublished(id)
+    .then((post) =&gt; {
+      postToPublish = post;
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.getPublishedPosts();
+    })
+    .then((posts) =&gt; {
+      <span class="hljs-keyword">return</span> Generators.generate({
+        generators: [<span class="hljs-string">'post'</span>, <span class="hljs-string">'pagination'</span>],
+        post: postToPublish,
+        posts: posts
+      });
+    })
+    .then((elementsToPublish) =&gt; {
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.publishElements(elementsToPublish);
+    })
+    .then((sha) =&gt; {
+      PostsActionIDBCreators.receivePublish({
+        message: {
+          type: <span class="hljs-string">'success'</span>,
+          title: <span class="hljs-string">'Publishing'</span>,
+          content: <span class="hljs-string">'Your post has been published with success.'</span>
+        }
+      });
+    })
+    .catch((err) =&gt; {
+      <span class="hljs-built_in">console</span>.error(<span class="hljs-string">'PostsServices - publishElements error'</span>, err);
+      PostsActionIDBCreators.receivePublish({
+        message: {
+          type: <span class="hljs-string">'error'</span>,
+          title: <span class="hljs-string">'Publishing'</span>,
+          content: <span class="hljs-string">'An error has occurred, see your console for more informations.'</span>
+        }
+      });
+    });
+  }
+
+  publishPosts() {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - publishPosts'</span>);
+    <span class="hljs-keyword">let</span> commit;
+    <span class="hljs-keyword">let</span> postToPublish;
+    <span class="hljs-keyword">this</span>.getPublishedPosts()
+    .then((posts) =&gt; {
+      <span class="hljs-keyword">return</span> Generators.generate({
+        posts: posts
+      });
+    })
+    .then((elementsToPublish) =&gt; {
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.publishElements(elementsToPublish);
+    })
+    .then((sha) =&gt; {
+      PostsActionIDBCreators.receivePublish({
+        message: {
+          type: <span class="hljs-string">'success'</span>,
+          title: <span class="hljs-string">'Publishing'</span>,
+          content: <span class="hljs-string">'Your posts have been published with success.'</span>
+        }
+      });
+    })
+    .catch((err) =&gt; {
+      <span class="hljs-built_in">console</span>.error(<span class="hljs-string">'PostsServices - publishPosts error'</span>, err);
+      PostsActionIDBCreators.receivePublish({
+        message: {
+          type: <span class="hljs-string">'error'</span>,
+          title: <span class="hljs-string">'Publishing'</span>,
+          content: <span class="hljs-string">'An error has occurred, see your console for more informations.'</span>
+        }
+      });
+    });
+  }
+
+  unpublishPost(id) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsServices - unpublishPost'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsServices - unpublishPost'</span>, id);
+    <span class="hljs-keyword">let</span> deferred = Q.defer();
+
+    <span class="hljs-keyword">this</span>.markAsUnpublishedAndDelete(id)
+    .then(<span class="hljs-keyword">this</span>.getPublishedPosts)
+    .then((posts) =&gt; {
+      <span class="hljs-keyword">return</span> Generators.generate({
+        generators: [<span class="hljs-string">'pagination'</span>],
+        posts: posts
+      });
+    })
+    .then((elementsToPublish) =&gt; {
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.publishElements(elementsToPublish);
+    })
+    .then(() =&gt; {
+      PostsActionIDBCreators.receiveUnpublish({
+        message: {
+          type: <span class="hljs-string">'success'</span>,
+          title: <span class="hljs-string">'Unpublishing'</span>,
+          content: <span class="hljs-string">'Your post has been unpublished with success.'</span>
+        }
+      });
+      deferred.resolve();
+    })
+    .catch((e) =&gt; {
+      <span class="hljs-built_in">console</span>.error(<span class="hljs-string">'PostsServices - unpublishPost error'</span>, e);
+      PostsActionIDBCreators.receiveUnpublish({
+        message: {
+          type: <span class="hljs-string">'error'</span>,
+          title: <span class="hljs-string">'Publishing'</span>,
+          content: <span class="hljs-string">'An error has occurred, see your console for more informations.'</span>
+        }
+      });
+      deferred.reject(e);
+    });
+
+    <span class="hljs-keyword">return</span> deferred.promise;
+  }
+
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> PostsServices();</div></div></div></div></body></html>

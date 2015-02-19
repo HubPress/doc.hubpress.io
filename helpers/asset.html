@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/asset</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/asset"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/asset.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/asset.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="asset-helper">Asset helper</h1>
+<p>Usage: <code>{{asset &quot;css/screen.css&quot;}}</code>, <code>{{asset &quot;css/screen.css&quot; ghost=&quot;true&quot;}}</code></p>
+<p>Returns the path to the specified asset. The ghost flag outputs the asset path for the Ghost admin</p></div></div><div class="code"><div class="wrapper">import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+import ThemeStore from <span class="hljs-string">'../stores/ThemeStore'</span>;
+<span class="hljs-keyword">var</span> handlebars      = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>);
+<span class="hljs-keyword">var</span> utils           = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./utils'</span>);
+<span class="hljs-keyword">var</span> asset;
+
+asset = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(context, options)</span> </span>{
+    <span class="hljs-keyword">var</span> output = <span class="hljs-string">''</span>,
+        isAdmin = options &amp;&amp; options.hash &amp;&amp; options.hash.ghost;
+
+    output += SettingsStore.getThemeUrl(ThemeStore.getThemeName()) + <span class="hljs-string">'/'</span>;
+
+    <span class="hljs-keyword">if</span> (!context.match(<span class="hljs-regexp">/^favicon\.ico$/</span>) &amp;&amp; !context.match(<span class="hljs-regexp">/^asset/</span>)) {
+      output += <span class="hljs-string">'assets/'</span>;
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Get rid of any leading slash on the context</p></div></div><div class="code"><div class="wrapper">    context = context.replace(<span class="hljs-regexp">/^\//</span>, <span class="hljs-string">''</span>);
+    output += context;
+
+    <span class="hljs-keyword">if</span> (!context.match(<span class="hljs-regexp">/^favicon\.ico$/</span>)) {
+        output = utils.assetTemplate({
+            source: output,
+            version: ThemeStore.getThemeVersion()
+        });
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> handlebars.SafeString(output);
+};
+
+<span class="hljs-built_in">module</span>.exports = asset;</div></div></div></div></body></html>

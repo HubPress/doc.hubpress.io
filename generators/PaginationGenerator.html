@@ -1,0 +1,144 @@
+<!DOCTYPE html><html lang="en"><head><title>generators/PaginationGenerator</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="generators/PaginationGenerator"><meta name="groc-project-path" content="src/hubpress/scripts/generators/PaginationGenerator.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/generators/PaginationGenerator.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> Q = <span class="hljs-built_in">require</span>(<span class="hljs-string">'q'</span>);
+<span class="hljs-keyword">const</span> _ = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>);
+import ThemeStore from <span class="hljs-string">'../stores/ThemeStore'</span>;
+import AuthStore from <span class="hljs-string">'../stores/AuthStore'</span>;
+import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+
+<span class="hljs-keyword">class</span> PaginationGenerator {
+
+  constructor() {
+    <span class="hljs-keyword">this</span>.name = <span class="hljs-string">'pagination'</span>;
+  }
+
+  generate(params) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PaginationGenerator - generate'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PaginationGenerator - generate'</span>, params);
+    <span class="hljs-keyword">const</span> posts = params.posts;
+    <span class="hljs-keyword">let</span> defer = Q.defer();
+    <span class="hljs-keyword">let</span> pageCount = <span class="hljs-number">1</span>;
+    <span class="hljs-keyword">const</span> siteConfig = SettingsStore.config().site;
+    siteConfig.url = SettingsStore.getSiteUrl();
+    <span class="hljs-keyword">let</span> siteRoot = siteConfig.url;
+    <span class="hljs-keyword">let</span> pagePath = <span class="hljs-string">'index.html'</span>;
+    <span class="hljs-keyword">let</span> postsPageToGenerate = [];
+    <span class="hljs-keyword">let</span> postsPageToPublish = [];
+    <span class="hljs-keyword">let</span> nbPostPerPage = <span class="hljs-built_in">parseInt</span>(siteConfig.postsPerPage || <span class="hljs-number">10</span>, <span class="hljs-number">10</span>);
+
+
+    <span class="hljs-keyword">if</span> (!posts || !posts.length) {
+      <span class="hljs-keyword">let</span> htmlContent = ThemeStore.template(<span class="hljs-string">'index'</span>,{
+        pagination: {
+          prev: <span class="hljs-number">0</span>,
+          next: <span class="hljs-number">0</span>,
+          page: <span class="hljs-number">0</span>,
+          pages: <span class="hljs-number">0</span>,
+          total: <span class="hljs-number">0</span>,
+          limit: nbPostPerPage
+        },
+        posts: [],
+        site: siteConfig,
+        theme: SettingsStore.config().theme,
+        socialnetwork: SettingsStore.config().socialnetwork,
+      });
+
+      postsPageToPublish.push( {
+        name:`page-${pageCount}`,
+        path: <span class="hljs-string">'index.html'</span>,
+        content: htmlContent,
+        message: `Publish page-${pageCount}`,
+        author: AuthStore.getAuthor(),
+        relativeUrl: <span class="hljs-string">''</span>
+      })
+
+      defer.resolve(postsPageToPublish);
+
+      <span class="hljs-keyword">return</span> defer.promise;
+    }
+
+    <span class="hljs-keyword">let</span> totalPage = <span class="hljs-built_in">Math</span>.ceil((posts.length) / nbPostPerPage);
+
+    _.each(posts, (post, index) =&gt; {
+      <span class="hljs-keyword">let</span> olderPage = <span class="hljs-string">''</span>;
+      <span class="hljs-keyword">let</span> youngerPage = <span class="hljs-string">''</span>;
+      <span class="hljs-keyword">let</span> next = <span class="hljs-number">0</span>;
+      <span class="hljs-keyword">let</span> previous = <span class="hljs-number">0</span>;
+
+      <span class="hljs-keyword">if</span> (pageCount &gt; <span class="hljs-number">1</span>) {
+        pagePath = `page/${pageCount}/index.html`
+      }
+
+      <span class="hljs-keyword">if</span> (pageCount &gt; <span class="hljs-number">1</span>) {
+        <span class="hljs-keyword">if</span> (pageCount === <span class="hljs-number">2</span>) {
+          youngerPage = <span class="hljs-string">'/index.html'</span>;
+        }
+        <span class="hljs-keyword">else</span> {
+          youngerPage = `${siteRoot}/page/${pageCount-<span class="hljs-number">1</span>}/index.html`;
+        }
+        previous = pageCount-<span class="hljs-number">1</span>;
+      }
+      <span class="hljs-keyword">if</span> (pageCount &lt; totalPage) {
+        olderPage = `${siteRoot}/page/${pageCount+<span class="hljs-number">1</span>}/index.html`;
+        next = pageCount+<span class="hljs-number">1</span>;
+      }
+
+
+      <span class="hljs-keyword">if</span> (post.attributes.map.tags) {
+        post.tags = post.attributes.map.tags.split(<span class="hljs-string">','</span>);
+        post.tags = _.map(post.tags, (tag) =&gt; {
+          <span class="hljs-keyword">return</span> tag.trim();
+        });
+      }
+
+
+      postsPageToGenerate.push({
+        image: post.image,
+        title: post.title,
+        url: siteRoot+post.url,
+        excerpt: post.excerpt,
+        html: post.excerpt,
+        tags: post.tags,
+        published_at: post.published_at,
+        relativeUrl: <span class="hljs-string">''</span>
+      });
+
+      <span class="hljs-keyword">if</span> (<span class="hljs-built_in">Math</span>.floor((index + <span class="hljs-number">1</span>) / nbPostPerPage) &gt; pageCount-<span class="hljs-number">1</span> || (index + <span class="hljs-number">1</span>)===posts.length) {
+        <span class="hljs-comment">//Generate</span>
+        <span class="hljs-keyword">let</span> htmlContent = ThemeStore.template(<span class="hljs-string">'index'</span>,{
+            pagination: {
+              prev: previous,
+              next: next,
+              page: pageCount,
+              pages: totalPage,
+              total: totalPage,
+              limit: nbPostPerPage
+            },
+            posts: postsPageToGenerate,
+            title: siteConfig.title,
+            description: siteConfig.description,
+            site: siteConfig,
+            theme: SettingsStore.config().theme,
+            socialnetwork: SettingsStore.config().socialnetwork,
+            relativeUrl: <span class="hljs-string">''</span>
+          });
+
+        postsPageToPublish.push( {
+          name:`page-${pageCount}`,
+          path: pagePath,
+          content: htmlContent,
+          message: `Publish page-${pageCount}`,
+          author: AuthStore.getAuthor()
+        })
+
+        postsPageToGenerate = [];
+        pageCount++
+      }
+
+    })
+
+    defer.resolve(postsPageToPublish);
+
+    <span class="hljs-keyword">return</span> defer.promise;
+  }
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> PaginationGenerator();</div></div></div></div></body></html>

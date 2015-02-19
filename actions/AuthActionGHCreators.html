@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="en"><head><title>actions/AuthActionGHCreators</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="actions/AuthActionGHCreators"><meta name="groc-project-path" content="src/hubpress/scripts/actions/AuthActionGHCreators.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/actions/AuthActionGHCreators.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">import HpConstants from <span class="hljs-string">'../constants/HpConstants'</span>;
+<span class="hljs-keyword">const</span> HpDispatcher = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../dispatchers/HpDispatcher'</span>);
+<span class="hljs-keyword">const</span> ActionTypes = HpConstants.ActionTypes;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="authactionghcreators">AuthActionGHCreators</h2></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">class</span> AuthActionGHCreators {</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method receiveAuthentication</span></p>
+<p>Receive authentication information from GitHub</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>values must be an Object.</strong></p>
+<ul>
+<li><p><strong>values.authentication must be an Object.</strong><br/>(Email or Username of the user)</p>
+</li>
+<li><p><strong>values.authentication.permissions must be an Object.</strong></p>
+</li>
+<li><p><strong>values.authentication.permissions.admin must be a boolean.</strong><br/>(true if user is admin)</p>
+</li>
+<li><p><strong>values.authentication.permissions.push must be a boolean.</strong><br/>(true if user can push)</p>
+</li>
+<li><p><strong>values.authentication.permissions.put must be a boolean.</strong><br/>(true if user can put)</p>
+</li>
+<li><p><strong>values.token must be a String.</strong><br/>(Token to use to query GitHub API)</p>
+</li>
+<li><p><strong>values.message must be an Object.</strong></p>
+</li>
+<li><p><strong>values.message.content must be a String.</strong><br/>(Content of the message to show)</p>
+</li>
+<li><p><strong>values.message.title must be a String.</strong><br/>(Title of the message to shoz)</p>
+</li>
+<li><p><strong>values.message.type must be a String.</strong><br/>(Type of the message)</p>
+</li>
+</ul>
+</li>
+</ul></div></div><div class="code"><div class="wrapper">  receiveAuthentication(values) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'AuthActionGHCreators - receiveAuthentication'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'AuthActionGHCreators - receiveAuthentication'</span>, values);
+    HpDispatcher.handleViewAction({
+      type: ActionTypes.RECEIVE_AUTHENTICATION,
+      authentication: values.authentication,
+      message: values.message
+    });
+  }
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> AuthActionGHCreators();</div></div></div></div></body></html>

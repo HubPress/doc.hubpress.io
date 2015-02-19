@@ -1,0 +1,138 @@
+<!DOCTYPE html><html lang="en"><head><title>components/Post.react</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="components/Post.react"><meta name="groc-project-path" content="src/hubpress/scripts/components/Post.react.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/components/Post.react.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> React = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react'</span>);
+<span class="hljs-keyword">const</span> assign = <span class="hljs-built_in">require</span>(<span class="hljs-string">'object-assign'</span>);
+<span class="hljs-keyword">const</span> Router = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react-router'</span>);
+<span class="hljs-keyword">const</span> Loader = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Loader.react.js'</span>);
+<span class="hljs-keyword">const</span> Authentication = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Authentication'</span>);
+<span class="hljs-built_in">require</span>(<span class="hljs-string">'../utils/codemirror/mode/asciidoc'</span>);
+<span class="hljs-keyword">const</span> CodeMirror = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react-code-mirror'</span>);
+
+<span class="hljs-keyword">const</span> AsciidocRender = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./AsciidocRender.react'</span>);
+
+import PostsStore from <span class="hljs-string">'../stores/PostsStore'</span>;
+import PostsActionCreators from <span class="hljs-string">'../actions/PostsActionCreators'</span>;
+
+<span class="hljs-keyword">let</span> Post = React.createClass({
+  mixins: [Authentication, Router.State],
+
+  getInitialState: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">return</span> {post: {}, loading: <span class="hljs-literal">true</span>, viewActive: <span class="hljs-literal">false</span>};
+  },
+
+  componentDidMount: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    PostsStore.addChangeListener(<span class="hljs-keyword">this</span>._onPostsStoreChange);
+    <span class="hljs-keyword">this</span>.setState({post: PostsStore.getPost(<span class="hljs-keyword">this</span>.getParams().postId), loading: PostsStore.isLoading(), viewActive: <span class="hljs-literal">false</span>});
+  },
+
+  componentWillUnmount: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    PostsStore.removeChangeListener(<span class="hljs-keyword">this</span>._onPostsStoreChange);
+  },
+
+  _onPostsStoreChange: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span></span>{
+    <span class="hljs-keyword">if</span> (!PostsStore.isLoading()) {
+      <span class="hljs-keyword">this</span>.setState({post: PostsStore.getPost(<span class="hljs-keyword">this</span>.getParams().postId), loading: PostsStore.isLoading()});
+
+    }
+    <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">this</span>.setState({post: <span class="hljs-keyword">this</span>.state.post, loading: PostsStore.isLoading()});
+    }
+
+  },
+
+  handleRemoteSave: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    PostsActionCreators.remoteSave(<span class="hljs-keyword">this</span>.getParams().postId);
+    <span class="hljs-comment">//this.setState({loading: true});</span>
+  },
+
+  handlePublish: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    PostsActionCreators.publish(<span class="hljs-keyword">this</span>.getParams().postId);
+  },
+
+  handleUnpublish: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    PostsActionCreators.unpublish(<span class="hljs-keyword">this</span>.getParams().postId);
+  },
+
+  handleChange: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(event)</span> </span>{
+    <span class="hljs-keyword">let</span> post = <span class="hljs-keyword">this</span>.state.post;
+    post.content = event.target.value;
+    <span class="hljs-keyword">this</span>.setState({post: post});
+  },
+
+  handleAsciidocChange: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(postConverted)</span> </span>{
+    postConverted.title = postConverted.attributes &amp;&amp; postConverted.attributes.map[<span class="hljs-string">'doctitle'</span>];
+    <span class="hljs-keyword">if</span> (!PostsStore.isLoading() &amp;&amp; postConverted.title) {
+      <span class="hljs-keyword">let</span> postToSave = assign({}, <span class="hljs-keyword">this</span>.state.post, postConverted);
+      <span class="hljs-keyword">this</span>.postAttributes = postToSave.attributes;
+      PostsActionCreators.localSave(postToSave);
+    }
+  },
+
+  doAnimation: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.setState({
+      viewActive: !<span class="hljs-keyword">this</span>.state.viewActive
+    })
+  },
+
+  render: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">let</span> saveBtn;
+    <span class="hljs-keyword">let</span> publishedBtn;
+    <span class="hljs-keyword">let</span> toogleView;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>if (this.state.loading)
+  return (
+    <div><h1>Loading</h1></div>
+  );</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-comment">//else {</span>
+      <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.state.viewActive) {
+        toogleView = <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-title">a</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.doAnimation}</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">span</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa-stack"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-circle-thin fa-stack-2x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-eye-slash fa-stack-1x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">span</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">a</span>&gt;</span>
+
+      }
+      else {
+        toogleView = <span class="hljs-tag">&lt;<span class="hljs-title">a</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.doAnimation}</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">span</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa-stack"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-circle-thin fa-stack-2x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-eye fa-stack-1x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">span</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">a</span>&gt;</span>
+      }
+
+      if (this.state.post.published) {
+        publishedBtn = <span class="hljs-tag">&lt;<span class="hljs-title">a</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handleUnpublish}</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Unpublish post"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">span</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa-stack"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-circle-thin fa-stack-2x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-level-down fa-stack-1x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">span</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">a</span>&gt;</span> //<span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"unpublish"</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"button success"</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handleUnpublish}</span>&gt;</span>Unpublish<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span>
+        saveBtn = <span class="hljs-tag">&lt;<span class="hljs-title">a</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handlePublish}</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Update post"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">span</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa-stack"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-circle-thin fa-stack-2x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-save fa-stack-1x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">span</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">a</span>&gt;</span> //<span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"update"</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"button success"</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handlePublish}</span>&gt;</span>Update<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span>
+      }
+      else {
+        publishedBtn = <span class="hljs-tag">&lt;<span class="hljs-title">a</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handlePublish}</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Publish post"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">span</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa-stack"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-circle-thin fa-stack-2x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-level-up fa-stack-1x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">span</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">a</span>&gt;</span> //<span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"publish"</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"button success"</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handlePublish}</span>&gt;</span>Publish<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span>
+        saveBtn = <span class="hljs-tag">&lt;<span class="hljs-title">a</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handleRemoteSave}</span> <span class="hljs-attribute">title</span>=<span class="hljs-value">"Save post"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">span</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa-stack"</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-circle-thin fa-stack-2x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-save fa-stack-1x"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">span</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">a</span>&gt;</span> //<span class="hljs-tag">&lt;<span class="hljs-title">button</span> <span class="hljs-attribute">name</span>=<span class="hljs-value">"save"</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"button success"</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handleRemoteSave}</span>&gt;</span>Remote save<span class="hljs-tag">&lt;/<span class="hljs-title">button</span>&gt;</span>
+      }
+
+      return (
+        <span class="hljs-tag">&lt;<span class="hljs-title">div</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">Loader</span> <span class="hljs-attribute">loading</span>=<span class="hljs-value">{this.state.loading}</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">Loader</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"actions top"</span>&gt;</span>
+              {toogleView}
+            <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+
+
+          <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">{this.state.viewActive</span> ? '<span class="hljs-attribute">container</span> <span class="hljs-attribute">view-active</span>' <span class="hljs-attribute">:</span> '<span class="hljs-attribute">container</span> <span class="hljs-attribute">view-inactive</span>'}&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-title">CodeMirror</span> <span class="hljs-attribute">mode</span>=<span class="hljs-value">{'asciidoc'}</span>
+            <span class="hljs-attribute">theme</span>=<span class="hljs-value">{'solarized</span> <span class="hljs-attribute">dark</span>'}
+            <span class="hljs-attribute">className</span>=<span class="hljs-value">{'editor'}</span>
+            <span class="hljs-attribute">textAreaClassName</span>=<span class="hljs-value">{['form-control']}</span>
+            <span class="hljs-attribute">value</span>=<span class="hljs-value">{this.state.post.content}</span>
+            <span class="hljs-attribute">textAreaStyle</span>= {{<span class="hljs-attribute">minHeight:</span> '<span class="hljs-attribute">10em</span>'}}
+            <span class="hljs-attribute">style</span>= {{<span class="hljs-attribute">border:</span> '<span class="hljs-attribute">1px</span> <span class="hljs-attribute">solid</span> <span class="hljs-attribute">black</span>'}}
+            <span class="hljs-attribute">lineNumbers</span>=<span class="hljs-value">{false}</span>
+            <span class="hljs-attribute">lineWrapping</span>=<span class="hljs-value">{true}</span>
+            <span class="hljs-attribute">autofocus</span>=<span class="hljs-value">{true}</span>
+            <span class="hljs-attribute">onChange</span>=<span class="hljs-value">{this.handleChange}</span>
+            /&gt;</span>
+
+            <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"viewer"</span> &gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-title">AsciidocRender</span> <span class="hljs-attribute">content</span>=<span class="hljs-value">{this.state.post.content}</span> <span class="hljs-attribute">onChange</span>=<span class="hljs-value">{this.handleAsciidocChange}</span>/&gt;</span>
+            <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"actions bottom"</span>&gt;</span>
+              {saveBtn}
+              {publishedBtn}
+            <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+      );
+    //}
+  }
+
+});
+
+module.exports = Post;
+</span></div></div></div></div></body></html>

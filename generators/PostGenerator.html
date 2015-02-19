@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><title>generators/PostGenerator</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="generators/PostGenerator"><meta name="groc-project-path" content="src/hubpress/scripts/generators/PostGenerator.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/generators/PostGenerator.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> Q = <span class="hljs-built_in">require</span>(<span class="hljs-string">'q'</span>);
+<span class="hljs-keyword">const</span> _ = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>);
+import ThemeStore from <span class="hljs-string">'../stores/ThemeStore'</span>;
+import AuthStore from <span class="hljs-string">'../stores/AuthStore'</span>;
+import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+<span class="hljs-keyword">const</span> url = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../utils/url'</span>);
+
+<span class="hljs-keyword">class</span> PostGenerator {
+
+  constructor() {
+    <span class="hljs-keyword">this</span>.name = <span class="hljs-string">'post'</span>;
+  }
+
+  generate(params) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostGenerator - generate'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostGenerator - generate'</span>, params);
+    <span class="hljs-keyword">let</span> defer = Q.defer();
+    <span class="hljs-keyword">let</span> postsToPublish = [];
+    <span class="hljs-keyword">let</span> modifiedPost = params.post;
+
+    <span class="hljs-keyword">if</span> (!modifiedPost) {
+      defer.resolve(postsToPublish);
+      <span class="hljs-keyword">return</span> defer.promise;
+    }
+
+    <span class="hljs-keyword">let</span> postData = {};
+    _.extend(postData, modifiedPost.original);
+    <span class="hljs-keyword">if</span> (postData.attributes.map.tags) {
+      postData.tags = postData.attributes.map.tags.split(<span class="hljs-string">','</span>);
+      postData.tags = _.map(postData.tags, (tag) =&gt; {
+        <span class="hljs-keyword">return</span> tag.trim();
+      });
+    }
+
+    postData.author = AuthStore.getAuthor();
+
+    <span class="hljs-keyword">const</span> config = SettingsStore.config();
+    <span class="hljs-keyword">let</span> theme = config.theme;
+    theme.url = SettingsStore.getThemeUrl(theme.name);
+
+    <span class="hljs-keyword">let</span> htmlContent = ThemeStore.template(<span class="hljs-string">'post'</span>,{
+        site: config.site,
+        theme: theme,
+        socialnetwork: config.socialnetwork,
+        relativeUrl: modifiedPost.url,
+        post: postData
+      });
+
+    postsToPublish.push({
+      title: modifiedPost.title,
+      image: modifiedPost.image,
+      name:modifiedPost.name,
+      path:url.getPostGhPath(modifiedPost.name),
+      content:htmlContent,
+      message: `Publish ${modifiedPost.name}`,
+      published_at: modifiedPost.published_at
+    });
+
+
+    defer.resolve(postsToPublish);
+
+    <span class="hljs-keyword">return</span> defer.promise;
+  }
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> PostGenerator();</div></div></div><div class="segment"></div></div></body></html>

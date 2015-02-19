@@ -1,0 +1,135 @@
+<!DOCTYPE html><html lang="en"><head><title>stores/PostsStore</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="stores/PostsStore"><meta name="groc-project-path" content="src/hubpress/scripts/stores/PostsStore.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/stores/PostsStore.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">import HpConstants from <span class="hljs-string">'../constants/HpConstants'</span>;
+import PostsServices from <span class="hljs-string">'../services/PostsServices'</span>;
+import ThemeStore from <span class="hljs-string">'./ThemeStore'</span>;
+<span class="hljs-keyword">const</span> HpDispatcher = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../dispatchers/HpDispatcher'</span>);
+<span class="hljs-keyword">const</span> EventEmitter = <span class="hljs-built_in">require</span>(<span class="hljs-string">'events'</span>).EventEmitter;
+<span class="hljs-keyword">const</span> _ = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>);
+
+<span class="hljs-keyword">const</span> ActionTypes = HpConstants.ActionTypes;
+<span class="hljs-keyword">const</span> CHANGE_EVENT = <span class="hljs-string">'change'</span>;
+
+<span class="hljs-keyword">let</span> posts = [];
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">dispatcher</span><span class="hljs-params">(payload)</span> </span>{
+  <span class="hljs-keyword">let</span> action = payload.action;
+  <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsStores - dispatcher'</span>);
+  <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsStores - dispatcher'</span>, action);
+
+  <span class="hljs-keyword">switch</span>(action.type) {
+    <span class="hljs-keyword">case</span> ActionTypes.RECEIVE_POSTS:
+      <span class="hljs-keyword">this</span>.posts = action.posts;
+      <span class="hljs-keyword">this</span>.cachePosts = action.posts;
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-keyword">this</span>._isSynchronizing;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.RECEIVE_POST:
+      <span class="hljs-keyword">this</span>.cachePosts.push(action.post);
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-keyword">this</span>._isSynchronizing;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.REMOTESAVE_POST:
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-literal">true</span>;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.PUBLISH_POST:
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-literal">true</span>;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.UNPUBLISH_POST:
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-literal">true</span>;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.RECEIVE_REMOTESAVE:
+      <span class="hljs-keyword">this</span>.cachePosts.push(action.post);
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-keyword">this</span>._isSynchronizing;
+      <span class="hljs-keyword">this</span>.message = action.message;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.RECEIVE_PUBLISH:
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-literal">false</span>;
+      <span class="hljs-keyword">this</span>.cachePosts = [];
+
+      <span class="hljs-keyword">this</span>.message = action.message;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.RECEIVE_UNPUBLISH:
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-literal">false</span>;
+      <span class="hljs-keyword">this</span>.cachePosts = [];
+      <span class="hljs-keyword">this</span>.message = action.message;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.START_SYNCHRONIZE:
+      <span class="hljs-keyword">this</span>._isSynchronizing = <span class="hljs-literal">true</span>;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">case</span> ActionTypes.FINISH_SYNCHRONIZE:
+      <span class="hljs-keyword">this</span>.posts = <span class="hljs-literal">null</span>;
+      <span class="hljs-keyword">this</span>.cachePosts = <span class="hljs-literal">null</span>;
+      <span class="hljs-keyword">this</span>._isSynchronizing = <span class="hljs-literal">false</span>;
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-literal">false</span>;
+      <span class="hljs-keyword">this</span>.emitChange();
+      <span class="hljs-keyword">break</span>;
+    <span class="hljs-keyword">default</span>:</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>nothing</p></div></div><div class="code"><div class="wrapper">  }
+}
+
+<span class="hljs-keyword">class</span> PostsStore extends EventEmitter {
+
+  constructor() {
+    <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">this</span>._isSynchronizing = <span class="hljs-literal">false</span>;
+    <span class="hljs-keyword">this</span>.posts = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.message = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">this</span>.cachePosts = [];
+    <span class="hljs-keyword">this</span>.dispatcherToken = HpDispatcher.register(dispatcher.bind(<span class="hljs-keyword">this</span>));
+  }
+
+  emitChange() {
+    <span class="hljs-keyword">this</span>.emit(CHANGE_EVENT);
+  }
+
+  addChangeListener(callback) {
+    <span class="hljs-keyword">this</span>.on(CHANGE_EVENT, callback);
+  }
+
+  removeChangeListener(callback) {
+    <span class="hljs-keyword">this</span>.removeListener(CHANGE_EVENT, callback);
+  }
+
+  getPosts(force) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsStore - getPosts'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsStore - getPosts'</span>, force);
+    <span class="hljs-keyword">this</span>.message = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">let</span> load = force || !<span class="hljs-keyword">this</span>.posts;
+    <span class="hljs-keyword">if</span> (!load) {
+      <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.posts;
+    }
+
+    <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-literal">true</span>;
+    <span class="hljs-keyword">this</span>.emitChange();
+    PostsServices.getPosts();
+    <span class="hljs-keyword">return</span> [];
+  }
+
+  getPost(id) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'PostsStore - getPost'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'PostsStore - getPost'</span>, id);
+    <span class="hljs-keyword">this</span>.message = <span class="hljs-literal">null</span>;
+    <span class="hljs-keyword">let</span> post = _.find(<span class="hljs-keyword">this</span>.cachePosts, (_post) =&gt; _post.id === id);
+
+    <span class="hljs-keyword">if</span> (post) {
+      <span class="hljs-keyword">return</span> post;
+    }
+    <span class="hljs-keyword">else</span> {
+      <span class="hljs-keyword">this</span>._isLoading = <span class="hljs-literal">true</span>;
+      <span class="hljs-keyword">this</span>.emitChange();
+      PostsServices.getPost(id);
+      <span class="hljs-keyword">return</span> {};
+    }
+  }
+
+  isLoading() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>._isLoading;
+  }
+}
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> PostsStore();</div></div></div></div></body></html>

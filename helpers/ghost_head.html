@@ -1,0 +1,149 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/ghost_head</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/ghost_head"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/ghost_head.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/ghost_head.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="ghost-head-helper">Ghost Head Helper</h1>
+<p>Usage: <code>{{ghost_head}}</code></p>
+<p>Outputs scripts and other assets at the top of a Ghost theme</p>
+<p>We use the name ghost_head to match the helper for consistency:
+jscs:disable requireCamelCaseOrUpperCaseIdentifiers</p></div></div><div class="code"><div class="wrapper">import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+<span class="hljs-keyword">var</span> handlebars      = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>),
+    moment          = <span class="hljs-built_in">require</span>(<span class="hljs-string">'moment'</span>),
+    _               = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>),
+
+    <span class="hljs-comment">//config          = require('../config'),</span>
+
+    urlHelper           = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./url'</span>),
+    meta_description    = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./meta_description'</span>),
+    meta_title          = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./meta_title'</span>),
+    excerpt             = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./excerpt'</span>),
+    tagsHelper          = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./tags'</span>),
+    imageHelper         = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./image'</span>),
+    ghost_head;
+
+ghost_head = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-comment">/*jshint unused:false*/</span>
+    <span class="hljs-keyword">var</span> self = <span class="hljs-keyword">this</span>,
+        blog = SettingsStore.config(),
+        useStructuredData = <span class="hljs-literal">true</span>, <span class="hljs-comment">// !config.isPrivacyDisabled('useStructuredData'),</span>
+        head = [],
+        majorMinor = <span class="hljs-regexp">/^(\d+\.)?(\d+)/</span>,
+        trimmedVersion = <span class="hljs-keyword">this</span>.version,
+        trimmedUrlpattern = <span class="hljs-regexp">/.+(?=\/page\/\d*\/)/</span>,
+        trimmedUrl, next, prev, tags,
+        structuredData,
+        cover, authorImage, keywords,
+        schema,
+        title = handlebars.Utils.escapeExpression(blog.site.title);
+
+    trimmedVersion = trimmedVersion ? trimmedVersion.match(majorMinor)[<span class="hljs-number">0</span>] : <span class="hljs-string">'?'</span>;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Resolves promises then push pushes meta data into ghost_head</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">var</span> url = urlHelper.call(self, {hash: {absolute: <span class="hljs-literal">true</span>}}),
+        metaDescription = meta_description.call(self),
+        metaTitle = meta_title.call(self),
+        cover = <span class="hljs-literal">null</span>,
+        authorImage =  <span class="hljs-literal">null</span>,
+        publishedDate, modifiedDate,
+        tags = tagsHelper.call(self.post, {hash: {autolink: <span class="hljs-string">'false'</span>}}).string.split(<span class="hljs-string">','</span>),
+        card = <span class="hljs-string">'summary'</span>,
+        type, authorUrl;
+
+      <span class="hljs-keyword">if</span> (self.post) {
+        cover = imageHelper.call(self.post, {hash: {absolute:<span class="hljs-literal">true</span>}});
+
+        <span class="hljs-keyword">if</span> (self.post.author) {
+          authorImage = imageHelper.call(self.post.author, {hash: {absolute:<span class="hljs-literal">true</span>}});
+        }
+      }
+
+    <span class="hljs-keyword">if</span> (!metaDescription &amp;&amp; self.post) {
+        metaDescription = excerpt.call(self.post, {hash: {words: <span class="hljs-string">'40'</span>}}).string;
+    }
+    <span class="hljs-keyword">if</span> (tags[<span class="hljs-number">0</span>] !== <span class="hljs-string">''</span>) {
+        keywords = handlebars.Utils.escapeExpression(tagsHelper.call(self.post, {hash: {autolink: <span class="hljs-string">'false'</span>, seperator: <span class="hljs-string">', '</span>}}).string);
+    }
+    head.push(<span class="hljs-string">'&lt;link rel="canonical" href="'</span> + url + <span class="hljs-string">'" /&gt;'</span>);
+
+    <span class="hljs-keyword">if</span> (self.pagination) {
+        <span class="hljs-comment">//trimmedUrl = self.relativeUrl.match(trimmedUrlpattern);</span>
+        <span class="hljs-keyword">if</span> (self.pagination.prev) {
+            prev = (self.pagination.prev &gt; <span class="hljs-number">1</span> ? prev = <span class="hljs-string">'/page/'</span> + self.pagination.prev + <span class="hljs-string">'/'</span> : prev = <span class="hljs-string">'/'</span>);
+            <span class="hljs-comment">//prev = (trimmedUrl) ? '/' + trimmedUrl + prev : prev;</span>
+            head.push(<span class="hljs-string">'&lt;link rel="prev" href="'</span> +  SettingsStore.getSiteUrl() + prev + <span class="hljs-string">'" /&gt;'</span>);
+        }
+        <span class="hljs-keyword">if</span> (self.pagination.next) {
+            next = <span class="hljs-string">'/page/'</span> + self.pagination.next + <span class="hljs-string">'/'</span>;
+            <span class="hljs-comment">//next = (trimmedUrl) ? '/' + trimmedUrl + next : next;</span>
+            head.push(<span class="hljs-string">'&lt;link rel="next" href="'</span> +  SettingsStore.getSiteUrl() + next + <span class="hljs-string">'" /&gt;'</span>);
+        }
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Test to see if we are on a post page and that Structured data has not been disabled in config.js</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (self.post &amp;&amp; useStructuredData) {
+        publishedDate = moment(self.post.published_at).toISOString();
+        modifiedDate = moment(self.post.updated_at).toISOString();
+
+        <span class="hljs-keyword">if</span> (cover) {
+            card = <span class="hljs-string">'summary_large_image'</span>;
+        }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>escaped data</p></div></div><div class="code"><div class="wrapper">        metaTitle = handlebars.Utils.escapeExpression(metaTitle);
+        metaDescription = handlebars.Utils.escapeExpression(metaDescription + <span class="hljs-string">'...'</span>);
+        authorUrl = <span class="hljs-string">''</span>;
+        <span class="hljs-keyword">if</span> (self.post &amp;&amp; self.post.author) {
+          authorUrl = handlebars.Utils.escapeExpression(blog.url + <span class="hljs-string">'/author/'</span> + self.post.author.slug);
+        }
+
+        schema = {
+            <span class="hljs-string">'@context'</span>: <span class="hljs-string">'http://schema.org'</span>,
+            <span class="hljs-string">'@type'</span>: <span class="hljs-string">'Article'</span>,
+            publisher: title,
+            author: {
+                <span class="hljs-string">'@type'</span>: <span class="hljs-string">'Person'</span>,
+                name: self.post.author.name,
+                image: authorImage,
+                url: authorUrl,
+                sameAs: self.post.author.website
+            },
+            headline: metaTitle,
+            url: url,
+            datePublished: publishedDate,
+            dateModified: modifiedDate,
+            image: cover,
+            keywords: keywords,
+            description: metaDescription
+        };
+
+        structuredData = {
+            <span class="hljs-string">'og:site_name'</span>: title,
+            <span class="hljs-string">'og:type'</span>: <span class="hljs-string">'article'</span>,
+            <span class="hljs-string">'og:title'</span>: metaTitle,
+            <span class="hljs-string">'og:description'</span>: metaDescription,
+            <span class="hljs-string">'og:url'</span>: url,
+            <span class="hljs-string">'og:image'</span>: cover,
+            <span class="hljs-string">'article:published_time'</span>: publishedDate,
+            <span class="hljs-string">'article:modified_time'</span>: modifiedDate,
+            <span class="hljs-string">'article:tag'</span>: tags,
+            <span class="hljs-string">'twitter:card'</span>: card,
+            <span class="hljs-string">'twitter:title'</span>: metaTitle,
+            <span class="hljs-string">'twitter:description'</span>: metaDescription,
+            <span class="hljs-string">'twitter:url'</span>: url,
+            <span class="hljs-string">'twitter:image:src'</span>: cover
+        };
+        head.push(<span class="hljs-string">''</span>);
+        _.each(structuredData, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(content, property)</span> </span>{
+            <span class="hljs-keyword">if</span> (property === <span class="hljs-string">'article:tag'</span>) {
+                _.each(tags, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(tag)</span> </span>{
+                    <span class="hljs-keyword">if</span> (tag !== <span class="hljs-string">''</span>) {
+                        tag = handlebars.Utils.escapeExpression(tag.trim());
+                        head.push(<span class="hljs-string">'&lt;meta property="'</span> + property + <span class="hljs-string">'" content="'</span> + tag + <span class="hljs-string">'" /&gt;'</span>);
+                    }
+                });
+                head.push(<span class="hljs-string">''</span>);
+            } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (content !== <span class="hljs-literal">null</span> &amp;&amp; content !== <span class="hljs-literal">undefined</span>) {
+                type = property.substring(<span class="hljs-number">0</span>, <span class="hljs-number">7</span>) === <span class="hljs-string">'twitter'</span> ? <span class="hljs-string">'name'</span> : <span class="hljs-string">'property'</span>;
+                head.push(<span class="hljs-string">'&lt;meta '</span> + type + <span class="hljs-string">'="'</span> + property + <span class="hljs-string">'" content="'</span> + content + <span class="hljs-string">'" /&gt;'</span>);
+            }
+        });
+        head.push(<span class="hljs-string">''</span>);
+        head.push(<span class="hljs-string">'&lt;script type="application/ld+json"&gt;\n'</span> + <span class="hljs-built_in">JSON</span>.stringify(schema, <span class="hljs-literal">null</span>, <span class="hljs-string">'    '</span>) + <span class="hljs-string">'\n    &lt;/script&gt;\n'</span>);
+    }
+
+    head.push(<span class="hljs-string">'&lt;meta name="generator" content="Ghost '</span> + trimmedVersion + <span class="hljs-string">'" /&gt;'</span>);
+    head.push(<span class="hljs-string">'&lt;link rel="alternate" type="application/rss+xml" title="'</span> +
+        title  + <span class="hljs-string">'" href="'</span> + SettingsStore.getSiteUrl() + <span class="hljs-string">'/rss" /&gt;'</span>);
+
+    <span class="hljs-keyword">var</span> headString = _.reduce(head, <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(memo, item)</span> </span>{ <span class="hljs-keyword">return</span> memo + <span class="hljs-string">'\n    '</span> + item; }, <span class="hljs-string">''</span>);
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> handlebars.SafeString(headString.trim());
+};
+
+<span class="hljs-built_in">module</span>.exports = ghost_head;</div></div></div></div></body></html>

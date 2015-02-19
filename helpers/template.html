@@ -1,0 +1,21 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/template</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/template"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/template.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/template.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> templates     = {},
+handlebars           = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="template-utils">Template utils</h2></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">logAndThrowError</span><span class="hljs-params">(err)</span> </span>{
+  <span class="hljs-built_in">console</span>.log(err);
+  <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(err);
+}</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Execute a template helper
+All template helpers are register as partial view.</p></div></div><div class="code"><div class="wrapper">templates.execute = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, context)</span> </span>{
+    <span class="hljs-keyword">var</span> partial = handlebars.partials[name];
+
+    <span class="hljs-keyword">if</span> (partial === <span class="hljs-literal">undefined</span>) {
+      <span class="hljs-keyword">var</span> err = <span class="hljs-string">'Template '</span> + name + <span class="hljs-string">' not found.'</span>;
+      <span class="hljs-built_in">console</span>.log(err);
+      <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(err);
+      <span class="hljs-keyword">return</span>;
+    }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>If the partial view is not compiled, it compiles and saves in handlebars</p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> partial === <span class="hljs-string">'string'</span>) {
+        partial = handlebars.compile(partial);
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> handlebars.SafeString(partial(context));
+};
+
+<span class="hljs-built_in">module</span>.exports = templates;</div></div></div></div></body></html>

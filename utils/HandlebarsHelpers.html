@@ -1,0 +1,82 @@
+<!DOCTYPE html><html lang="en"><head><title>utils/HandlebarsHelpers</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="utils/HandlebarsHelpers"><meta name="groc-project-path" content="src/hubpress/scripts/utils/HandlebarsHelpers.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/utils/HandlebarsHelpers.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">let</span> Handlebars = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>);
+
+(<span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(handlebars)</span> </span>{
+<span class="hljs-pi">
+  'use strict'</span>;
+
+  <span class="hljs-keyword">let</span> getBlocks = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(context, name)</span> </span>{
+    <span class="hljs-keyword">let</span> blocks = context._blocks;
+    <span class="hljs-keyword">return</span> blocks[name] || (blocks[name] = []);
+  };
+
+  handlebars.registerHelper({
+    extend: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(partial, options)</span> </span>{
+      <span class="hljs-keyword">let</span> context = <span class="hljs-built_in">Object</span>.create(<span class="hljs-keyword">this</span>);
+      <span class="hljs-keyword">let</span> template = handlebars.partials[partial];</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Partial template required</p></div></div><div class="code"><div class="wrapper">      <span class="hljs-keyword">if</span> (template == <span class="hljs-literal">null</span>) {
+        <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-built_in">Error</span>(<span class="hljs-string">'Missing layout partial: \''</span> + partial + <span class="hljs-string">'\''</span>);
+      }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>New block context</p></div></div><div class="code"><div class="wrapper">      context._blocks = {};</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Parse blocks and discard output</p></div></div><div class="code"><div class="wrapper">      options.fn(context);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Render final layout partial with revised blocks</p></div></div><div class="code"><div class="wrapper">      <span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> template !== <span class="hljs-string">'function'</span>) {
+        template = handlebars.compile(template);
+      }</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Compile, then render</p></div></div><div class="code"><div class="wrapper">      <span class="hljs-keyword">return</span> template(context);
+    },
+
+    append: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, options)</span> </span>{
+      getBlocks(<span class="hljs-keyword">this</span>, name).push({
+        should: <span class="hljs-string">'append'</span>,
+        fn: options.fn
+      });
+    },
+
+    prepend: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, options)</span> </span>{
+      getBlocks(<span class="hljs-keyword">this</span>, name).push({
+        should: <span class="hljs-string">'prepend'</span>,
+        fn: options.fn
+      });
+    },
+
+    replace: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, options)</span> </span>{
+      getBlocks(<span class="hljs-keyword">this</span>, name).push({
+        should: <span class="hljs-string">'replace'</span>,
+        fn: options.fn
+      });
+    },
+
+    block: <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(name, options)</span> </span>{
+      <span class="hljs-keyword">let</span> block = <span class="hljs-literal">null</span>;
+      <span class="hljs-keyword">let</span> retval = options.fn(<span class="hljs-keyword">this</span>);
+      <span class="hljs-keyword">let</span> blocks = getBlocks(<span class="hljs-keyword">this</span>, name);
+      <span class="hljs-keyword">let</span> length = blocks.length;
+      <span class="hljs-keyword">let</span> i = <span class="hljs-number">0</span>;
+
+      <span class="hljs-keyword">for</span> (; i &lt; length; i++) {
+        block = blocks[i];
+
+        <span class="hljs-keyword">switch</span> (block &amp;&amp; block.fn &amp;&amp; block.should) {
+          <span class="hljs-keyword">case</span> <span class="hljs-string">'append'</span>:
+            retval = retval + block.fn(<span class="hljs-keyword">this</span>);
+            <span class="hljs-keyword">break</span>;
+
+            <span class="hljs-keyword">case</span> <span class="hljs-string">'prepend'</span>:
+              retval = block.fn(<span class="hljs-keyword">this</span>) + retval;
+              <span class="hljs-keyword">break</span>;
+
+              <span class="hljs-keyword">case</span> <span class="hljs-string">'replace'</span>:
+                retval = block.fn(<span class="hljs-keyword">this</span>);
+                <span class="hljs-keyword">break</span>;
+              }
+            }
+
+            <span class="hljs-keyword">return</span> retval;
+          },
+
+          foreach: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">(context, options)</span> </span>{
+            <span class="hljs-keyword">let</span> ret = <span class="hljs-string">""</span>;
+
+            <span class="hljs-keyword">for</span>(<span class="hljs-keyword">let</span> i=<span class="hljs-number">0</span>, j=context.length; i&lt;j; i++) {
+              ret = ret + options.fn(context[i]);
+            }
+
+            <span class="hljs-keyword">return</span> ret;
+          }
+
+        });
+      })(Handlebars);</div></div></div></div></body></html>

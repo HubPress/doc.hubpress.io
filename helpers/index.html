@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/index</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/index"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/index.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/index.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> handlebars             = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>),
+    coreHelpers     = {},
+    registerHelpers;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Pre-load settings data:</p>
+<ul>
+<li>activeTheme</li>
+<li>permalinks</li>
+</ul></div></div><div class="code"><div class="wrapper">coreHelpers.asset  = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./asset'</span>);
+coreHelpers.author  = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./author'</span>);
+coreHelpers.body_class  = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./body_class'</span>);
+coreHelpers.content  = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./content'</span>);
+coreHelpers.date  = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./date'</span>);
+coreHelpers.encode  = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./encode'</span>);
+coreHelpers.excerpt  = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./excerpt'</span>);
+coreHelpers.foreach = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./foreach'</span>);
+coreHelpers.ghost_foot = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./ghost_foot'</span>);
+coreHelpers.ghost_head = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./ghost_head'</span>);
+coreHelpers.is = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./is'</span>);
+coreHelpers.has = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./has'</span>);
+coreHelpers.meta_description = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./meta_description'</span>);
+coreHelpers.meta_title = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./meta_title'</span>);
+coreHelpers.page_url = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./page_url'</span>);
+coreHelpers.pageUrl = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./page_url'</span>).deprecated;
+coreHelpers.pagination = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./pagination'</span>);
+coreHelpers.plural = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./plural'</span>);
+coreHelpers.post_class = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./post_class'</span>);
+coreHelpers.tags = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./tags'</span>);
+coreHelpers.title = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./title'</span>);
+coreHelpers.url = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./url'</span>);
+coreHelpers.image = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./image'</span>);
+
+
+coreHelpers.helperMissing = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(arg)</span> </span>{
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">arguments</span>.length === <span class="hljs-number">2</span>) {
+        <span class="hljs-keyword">return</span> <span class="hljs-literal">undefined</span>;
+    }
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'Missing helper: "'</span> + arg + <span class="hljs-string">'"'</span>);
+};</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Register a handlebars helper for themes</p></div></div><div class="code"><div class="wrapper"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">registerThemeHelper</span><span class="hljs-params">(name, fn)</span> </span>{
+  handlebars.registerHelper(name, fn);
+}
+
+registerHelpers = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(adminHbs)</span> </span>{</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Register theme helpers</p></div></div><div class="code"><div class="wrapper">    registerThemeHelper(<span class="hljs-string">'asset'</span>, coreHelpers.asset);
+    registerThemeHelper(<span class="hljs-string">'author'</span>, coreHelpers.author);
+    registerThemeHelper(<span class="hljs-string">'content'</span>, coreHelpers.content);
+    registerThemeHelper(<span class="hljs-string">'title'</span>, coreHelpers.title);
+    registerThemeHelper(<span class="hljs-string">'date'</span>, coreHelpers.date);
+    registerThemeHelper(<span class="hljs-string">'encode'</span>, coreHelpers.encode);
+    registerThemeHelper(<span class="hljs-string">'excerpt'</span>, coreHelpers.excerpt);
+    registerThemeHelper(<span class="hljs-string">'foreach'</span>, coreHelpers.foreach);
+    registerThemeHelper(<span class="hljs-string">'is'</span>, coreHelpers.is);
+    registerThemeHelper(<span class="hljs-string">'has'</span>, coreHelpers.has);
+    registerThemeHelper(<span class="hljs-string">'page_url'</span>, coreHelpers.page_url);
+    registerThemeHelper(<span class="hljs-string">'pageUrl'</span>, coreHelpers.pageUrl);
+    registerThemeHelper(<span class="hljs-string">'pagination'</span>, coreHelpers.pagination);
+    registerThemeHelper(<span class="hljs-string">'tags'</span>, coreHelpers.tags);
+    registerThemeHelper(<span class="hljs-string">'plural'</span>, coreHelpers.plural);
+    registerThemeHelper(<span class="hljs-string">'url'</span>, coreHelpers.url);
+    registerThemeHelper(<span class="hljs-string">'image'</span>, coreHelpers.image);
+
+    registerThemeHelper(<span class="hljs-string">'body_class'</span>, coreHelpers.body_class);
+    registerThemeHelper(<span class="hljs-string">'ghost_foot'</span>, coreHelpers.ghost_foot);
+    registerThemeHelper(<span class="hljs-string">'ghost_head'</span>, coreHelpers.ghost_head);
+    registerThemeHelper(<span class="hljs-string">'meta_description'</span>, coreHelpers.meta_description);
+    registerThemeHelper(<span class="hljs-string">'meta_title'</span>, coreHelpers.meta_title);
+    registerThemeHelper(<span class="hljs-string">'post_class'</span>, coreHelpers.post_class);
+};
+
+<span class="hljs-built_in">module</span>.exports = coreHelpers;
+<span class="hljs-built_in">module</span>.exports.loadCoreHelpers = registerHelpers;
+<span class="hljs-built_in">module</span>.exports.registerThemeHelper = registerThemeHelper;</div></div></div></div></body></html>

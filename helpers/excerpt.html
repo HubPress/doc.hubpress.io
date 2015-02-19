@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="en"><head><title>helpers/excerpt</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="helpers/excerpt"><meta name="groc-project-path" content="src/hubpress/scripts/helpers/excerpt.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/helpers/excerpt.js</div></div><div id="document"><div class="segment"><div class="comments "><div class="wrapper"><h1 id="excerpt-helper">Excerpt Helper</h1>
+<p>Usage: <code>{{excerpt}}</code>, <code>{{excerpt words=&quot;50&quot;}}</code>, <code>{{excerpt characters=&quot;256&quot;}}</code></p>
+<p>Attempts to remove all HTML from the string, and then shortens the result according to the provided option.</p>
+<p>Defaults to words=&quot;50&quot;</p></div></div><div class="code"><div class="wrapper"><span class="hljs-keyword">var</span> handlebars             = <span class="hljs-built_in">require</span>(<span class="hljs-string">'handlebars'</span>),
+    _               = <span class="hljs-built_in">require</span>(<span class="hljs-string">'lodash'</span>),
+    downsize        = <span class="hljs-built_in">require</span>(<span class="hljs-string">'downsize'</span>),
+    excerpt;
+
+excerpt = <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(options)</span> </span>{
+    <span class="hljs-keyword">var</span> truncateOptions = (options || {}).hash || {},
+        excerpt;
+
+    truncateOptions = _.pick(truncateOptions, [<span class="hljs-string">'words'</span>, <span class="hljs-string">'characters'</span>]);
+    _.keys(truncateOptions).map(<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-params">(key)</span> </span>{
+        truncateOptions[key] = <span class="hljs-built_in">parseInt</span>(truncateOptions[key], <span class="hljs-number">10</span>);
+    });
+
+    <span class="hljs-comment">/*jslint regexp:true */</span>
+    excerpt = <span class="hljs-built_in">String</span>(<span class="hljs-keyword">this</span>.html);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Strip inline and bottom footnotes</p></div></div><div class="code"><div class="wrapper">    excerpt = excerpt.replace(<span class="hljs-regexp">/&lt;a href="#fn.*?rel="footnote"&gt;.*?&lt;\/a&gt;/gi</span>, <span class="hljs-string">''</span>);
+    excerpt = excerpt.replace(<span class="hljs-regexp">/&lt;div class="footnotes"&gt;&lt;ol&gt;.*?&lt;\/ol&gt;&lt;\/div&gt;/</span>, <span class="hljs-string">''</span>);</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>Strip other html</p></div></div><div class="code"><div class="wrapper">    excerpt = excerpt.replace(<span class="hljs-regexp">/&lt;\/?[^&gt;]+&gt;/gi</span>, <span class="hljs-string">''</span>);
+    excerpt = excerpt.replace(<span class="hljs-regexp">/(\r\n|\n|\r)+/gm</span>, <span class="hljs-string">' '</span>);
+    <span class="hljs-comment">/*jslint regexp:false */</span>
+
+    <span class="hljs-keyword">if</span> (!truncateOptions.words &amp;&amp; !truncateOptions.characters) {
+        truncateOptions.words = <span class="hljs-number">50</span>;
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> handlebars.SafeString(
+        downsize(excerpt, truncateOptions)
+    );
+};
+
+<span class="hljs-built_in">module</span>.exports = excerpt;</div></div></div></div></body></html>

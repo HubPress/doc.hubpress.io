@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><title>actions/AppActionServerCreators</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="actions/AppActionServerCreators"><meta name="groc-project-path" content="src/hubpress/scripts/actions/AppActionServerCreators.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/actions/AppActionServerCreators.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper">import HpConstants from <span class="hljs-string">'../constants/HpConstants'</span>;
+import IndexedDb from <span class="hljs-string">'../resources/IndexedDb'</span>;
+import Github from <span class="hljs-string">'../resources/Github'</span>;
+import AuthStore from <span class="hljs-string">'../stores/AuthStore'</span>;
+import SettingsStore from <span class="hljs-string">'../stores/SettingsStore'</span>;
+import PostsServices from <span class="hljs-string">'../services/PostsServices'</span>;
+<span class="hljs-keyword">let</span> HpDispatcher = <span class="hljs-built_in">require</span>(<span class="hljs-string">'../dispatchers/HpDispatcher'</span>);
+<span class="hljs-keyword">let</span> ActionTypes = HpConstants.ActionTypes;</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><h2 id="appactionservercreators">AppActionServerCreators</h2></div></div></div><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">class</span> AppActionServerCreators {</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method receiveInit</span></p>
+<p>Receive data to init application</p>
+<hr>
+<p>This action is fired when server send a response</p>
+<p>Parameters:</p>
+<ul>
+<li><p><strong>data must be an Object.</strong><br/>(An object with 2 attributes : config and theme)</p>
+<ul>
+<li><p><strong>data.config must be an Object.</strong><br/>(An object that represent the <em>config.json</em> file)</p>
+</li>
+<li><p><strong>data.theme must be an Object.</strong><br/>(An object that represent the <em>theme.json</em> file of the selected theme)</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>Example:</p>
+<pre><code>AppActionServerCreators.receiveInit({
+  config: {},
+  theme: {}
+})</code></pre></div></div><div class="code"><div class="wrapper">  receiveInit(data) {
+    <span class="hljs-keyword">let</span> config = data.config;
+    <span class="hljs-keyword">let</span> theme = data.theme;
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'AppActionServerCreators - receiveInit'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'AppActionServerCreators - receiveInit'</span>, data);
+
+    IndexedDb.setDbName(SettingsStore.getDbName(config));
+
+    Github.setContext({
+      username: config.meta.username,
+      repositoryName: config.meta.repositoryName,
+      branch: config.meta.branch
+    });</div></div></div><div class="segment"><div class="comments "><div class="wrapper"><p>If there is a <strong>token</strong>, then we <strong>must work with OAuth</strong></p></div></div><div class="code"><div class="wrapper">    <span class="hljs-keyword">if</span> (AuthStore.getStatus().token) {
+      Github.renewInstance({
+        token: AuthStore.getStatus().token,
+        auth: <span class="hljs-string">"oauth"</span>
+      });
+    }
+
+    HpDispatcher.handleViewAction({
+      type: ActionTypes.RECEIVE_INIT,
+      config: config,
+      theme: theme
+    });
+  }</div></div></div><div class="segment"><div class="comments doc-section"><div class="wrapper"><p><span class='doc-section-header'>Method finishSynchronize</span></p>
+<p>Finish the synchronization</p>
+<p>Parameters:</p>
+<ul>
+<li><strong>posts must be an Array.</strong><br/>(an array with all the posts)</li>
+</ul></div></div><div class="code"><div class="wrapper">  finishSynchronize(posts) {
+    <span class="hljs-built_in">console</span>.info(<span class="hljs-string">'AppActionServerCreators - finishSynchronize'</span>);
+    <span class="hljs-built_in">console</span>.log(<span class="hljs-string">'AppActionServerCreators - finishSynchronize'</span>, posts);
+    HpDispatcher.handleViewAction({
+      type: ActionTypes.FINISH_SYNCHRONIZE,
+      posts: posts
+    });
+  }
+};
+
+export <span class="hljs-keyword">default</span> <span class="hljs-keyword">new</span> AppActionServerCreators();</div></div></div></div></body></html>

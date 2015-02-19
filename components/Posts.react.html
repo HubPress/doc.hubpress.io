@@ -1,0 +1,123 @@
+<!DOCTYPE html><html lang="en"><head><title>components/Posts.react</title></head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"><meta name="groc-relative-root" content="../"><meta name="groc-document-path" content="components/Posts.react"><meta name="groc-project-path" content="src/hubpress/scripts/components/Posts.react.js"><link rel="stylesheet" type="text/css" media="all" href="../assets/style.css"><script type="text/javascript" src="../assets/behavior.js"></script><body><div id="meta"><div class="file-path">src/hubpress/scripts/components/Posts.react.js</div></div><div id="document"><div class="segment"><div class="code"><div class="wrapper"><span class="hljs-keyword">const</span> React = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react'</span>);
+<span class="hljs-keyword">const</span> Router = <span class="hljs-built_in">require</span>(<span class="hljs-string">'react-router'</span>);
+<span class="hljs-keyword">const</span> { Link } = Router;
+<span class="hljs-keyword">const</span> uuid = <span class="hljs-built_in">require</span>(<span class="hljs-string">'node-uuid'</span>);
+<span class="hljs-keyword">const</span> Authentication = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Authentication'</span>);
+<span class="hljs-keyword">const</span> Loader = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./Loader.react.js'</span>);
+<span class="hljs-keyword">const</span> AsciidocRender = <span class="hljs-built_in">require</span>(<span class="hljs-string">'./AsciidocRender.react.js'</span>);
+import PostsStore from <span class="hljs-string">'../stores/PostsStore'</span>;
+import PostsActionCreators from <span class="hljs-string">'../actions/PostsActionCreators'</span>;
+
+<span class="hljs-keyword">let</span> PostItem = React.createClass({
+  mixins: [ Router.Navigation ],
+
+  handleClick: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.props.onClick(<span class="hljs-keyword">this</span>.props.post);
+  },
+
+  editPost: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">this</span>.transitionTo(<span class="hljs-string">'/posts/'</span>+<span class="hljs-keyword">this</span>.props.post.id);
+  },
+
+  render: <span class="hljs-function"><span class="hljs-keyword">function</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">let</span> postClasses = <span class="hljs-string">''</span>;
+
+    <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.props.selectedPost.id === <span class="hljs-keyword">this</span>.props.post.id) {
+      postClasses += <span class="hljs-string">' active'</span>;
+    }
+
+    <span class="hljs-keyword">if</span> (!<span class="hljs-keyword">this</span>.props.post.original || <span class="hljs-keyword">this</span>.props.post.original.content !== <span class="hljs-keyword">this</span>.props.post.content) {
+      postClasses += <span class="hljs-string">' draft'</span>;
+    }
+    <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (<span class="hljs-keyword">this</span>.props.post.published) {
+      postClasses += <span class="hljs-string">' published'</span>;
+    }
+
+    <span class="hljs-keyword">return</span> (
+      <span class="xml"><span class="hljs-tag">&lt;<span class="hljs-title">li</span> <span class="hljs-attribute">key</span>=<span class="hljs-value">{this.props.post.id}</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">{postClasses}</span>  <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handleClick}</span>&gt;</span>
+        <span class="hljs-tag">&lt;<span class="hljs-title">h3</span>&gt;</span>{this.props.post.attributes.map['doctitle']}<span class="hljs-tag">&lt;/<span class="hljs-title">h3</span>&gt;</span>
+
+        <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"actions top"</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">a</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.editPost}</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-pencil-square-o fa-lg"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-title">a</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+
+      <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+    );
+  }
+});
+
+
+let Posts = React.createClass({
+  mixins: [ Authentication],
+
+  getInitialState: function() {
+    return {posts: [], selectedPost: {}, loading: true}
+  },
+
+  componentDidMount: function() {
+    PostsStore.addChangeListener(this._onPostsStoreChange);
+    this.setState({posts: PostsStore.getPosts(true), selectedPost: {}, loading: PostsStore.isLoading()});
+  },
+
+  componentWillUnmount: function() {
+    PostsStore.removeChangeListener(this._onPostsStoreChange);
+  },
+
+  _onPostsStoreChange: function(){
+
+    if (!PostsStore.isLoading()) {
+      let selectedPost = {};
+
+      if (PostsStore.getPosts().length) {
+        selectedPost = PostsStore.getPosts()[0];
+      }
+      this.setState({posts: PostsStore.getPosts(), loading: PostsStore.isLoading(), selectedPost: selectedPost});
+    }
+    else {
+      this.setState({posts: [], selectedPost: {}, loading: PostsStore.isLoading()});
+
+    }
+
+  },
+
+  handleClick: function(post) {
+    this.setState({selectedPost: post});
+  },
+
+  render: function() {
+
+      let posts = this.state.posts.map(function(post, i) {
+        return (
+          <span class="hljs-tag">&lt;<span class="hljs-title">PostItem</span> <span class="hljs-attribute">key</span>=<span class="hljs-value">{post.id}</span> <span class="hljs-attribute">post</span>=<span class="hljs-value">{post}</span> <span class="hljs-attribute">selectedPost</span>=<span class="hljs-value">{this.state.selectedPost}</span> <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.handleClick}</span>/&gt;</span>
+        )
+      }, this);
+
+      let title = this.state.posts.length ? 'All posts' : 'No post';
+      let value = (
+        <span class="hljs-tag">&lt;<span class="hljs-title">div</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">Loader</span> <span class="hljs-attribute">loading</span>=<span class="hljs-value">{this.state.loading}</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">Loader</span>&gt;</span>
+          <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"container posts-list"</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">ul</span>&gt;</span>
+              <span class="hljs-tag">&lt;<span class="hljs-title">li</span>&gt;</span>{title}
+                <span class="hljs-tag">&lt;<span class="hljs-title">div</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"actions top"</span>&gt;</span>
+                  <span class="hljs-tag">&lt;<span class="hljs-title">Link</span> <span class="hljs-attribute">to</span>=<span class="hljs-value">"post"</span> <span class="hljs-attribute">params</span>=<span class="hljs-value">{{postId:</span> <span class="hljs-attribute">uuid.v4</span>()}} <span class="hljs-attribute">onClick</span>=<span class="hljs-value">{this.doAnimation}</span>&gt;</span>
+                    <span class="hljs-tag">&lt;<span class="hljs-title">i</span> <span class="hljs-attribute">className</span>=<span class="hljs-value">"fa fa-plus-circle fa-lg"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-title">i</span>&gt;</span>
+                  <span class="hljs-tag">&lt;/<span class="hljs-title">Link</span>&gt;</span>
+                <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+              <span class="hljs-tag">&lt;/<span class="hljs-title">li</span>&gt;</span>
+              {posts}
+            <span class="hljs-tag">&lt;/<span class="hljs-title">ul</span>&gt;</span>
+            <span class="hljs-tag">&lt;<span class="hljs-title">AsciidocRender</span> <span class="hljs-attribute">content</span>=<span class="hljs-value">{this.state.selectedPost.content}</span> /&gt;</span>
+          <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+        <span class="hljs-tag">&lt;/<span class="hljs-title">div</span>&gt;</span>
+
+      );
+    return value;
+  }
+
+});
+
+module.exports = Posts;
+</span></div></div></div></div></body></html>
